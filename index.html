@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCVR 2026 Performance Dashboard</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #059669;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        header {
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        h1 { margin: 0; font-size: 1.8rem; color: var(--primary); }
+        .subtitle { color: #64748b; margin-top: 5px; font-size: 0.9rem; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: var(--card);
+            padding: 18px 20px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+        }
+
+        .card h3 { margin: 0 0 8px 0; font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+        .card .value { font-size: 1.5rem; font-weight: 700; }
+        .card .sub { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
+
+        .table-container {
+            background: var(--card);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07);
+            overflow-x: auto;
+            border: 1px solid var(--border);
+        }
+
+        table { width: 100%; border-collapse: collapse; text-align: right; font-size: 0.85rem; }
+
+        th {
+            background: #f1f5f9;
+            padding: 12px 15px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+            color: #475569;
+        }
+
+        td { padding: 10px 15px; border-bottom: 1px solid var(--border); }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #f8fafc; }
+        tr.current-month td { background: #fffbeb; }
+        tr.no-data td { color: #94a3b8; }
+
+        .text-left { text-align: left; }
+        .unit-name { font-weight: 600; color: var(--primary); }
+
+        .variance-pos { color: var(--success); font-weight: 600; }
+        .variance-neg { color: var(--danger); font-weight: 600; }
+
+        .goal-col { color: #64748b; }
+        .actual-col { font-weight: 500; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-pos { background: #dcfce7; color: #166534; }
+        .badge-neg { background: #fee2e2; color: #991b1b; }
+        .badge-na  { background: #f1f5f9; color: #94a3b8; }
+        .badge-cur { background: #fef9c3; color: #854d0e; }
+
+        .controls { display: flex; gap: 15px; flex-wrap: wrap; }
+
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+
+        .filter-group label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+        }
+
+        select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: white;
+            min-width: 180px;
+            font-size: 0.87rem;
+        }
+
+        .export-btn {
+            align-self: flex-end;
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.87rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .export-btn:hover { background: #1d4ed8; }
+
+        tr.q-total td {
+            background: #f1f5f9;
+            font-weight: 700;
+            font-size: 0.82rem;
+            color: #334155;
+            border-top: 2px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        tr.q-total .variance-pos { color: var(--success); }
+        tr.q-total .variance-neg { color: var(--danger); }
+
+        .legend {
+            display: flex;
+            gap: 16px;
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .legend span { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .dot-actual { background: #059669; }
+        .dot-cur    { background: #f59e0b; }
+        .dot-na     { background: #cbd5e1; }
+
+        .refresh-note {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            text-align: right;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div>
+            <h1>GCVR 2026 Performance Dashboard</h1>
+            <p class="subtitle">Budget Goals vs. Revenue Recognized &nbsp;·&nbsp; Data as of <span id="asOfDate"></span></p>
+        </div>
+        <div class="controls">
+            <div class="filter-group">
+                <label>Portfolio / Unit</label>
+                <select id="unitFilter" onchange="renderTable()">
+                    <option value="All">All Units</option>
+                    <option value="Non-Resort Portfolio">Non-Resort Portfolio</option>
+                    <option value="Sandalfoot">Sandalfoot</option>
+                    <option value="Signal Inn">Signal Inn</option>
+                    <option value="GBB">GBB</option>
+                    <option value="YCA">YCA</option>
+                    <option value="Colony Inn">Colony Inn</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Month</label>
+                <select id="monthFilter" onchange="renderTable()">
+                    <option value="All">Full Year</option>
+                    <option value="January">January</option>
+                    <option value="February">February</option>
+                    <option value="March">March</option>
+                    <option value="April">April</option>
+                    <option value="May">May</option>
+                    <option value="June">June</option>
+                    <option value="July">July</option>
+                    <option value="August">August</option>
+                    <option value="September">September</option>
+                    <option value="October">October</option>
+                    <option value="November">November</option>
+                    <option value="December">December</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Show</label>
+                <select id="showFilter" onchange="renderTable()">
+                    <option value="all">All Months</option>
+                    <option value="actual">Actuals Only</option>
+                    <option value="future">Future / Pacing</option>
+                </select>
+            </div>
+            <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+        </div>
+    </header>
+
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <div class="table-container">
+        <table id="performanceTable">
+            <thead>
+                <tr>
+                    <th class="text-left">Unit / Portfolio</th>
+                    <th>Month</th>
+                    <th class="goal-col">Budget Goal</th>
+                    <th class="actual-col">Revenue Recognized</th>
+                    <th>Variance ($)</th>
+                    <th>Variance (%)</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="legend">
+        <span><span class="dot dot-actual"></span>Confirmed actuals from KeyData</span>
+        <span><span class="dot dot-cur"></span>Current month (in progress)</span>
+    </div>
+    <p class="refresh-note">Last refreshed: <span id="refreshDate"></span> &nbsp;·&nbsp; Run budget_vs_actuals.py weekly to update</p>
+</div>
+
+<script>
+// ── Data — actuals patched weekly by budget_vs_actuals.py ─────────────────────
+// null  = no data yet (future month, or property not in KeyData)
+// CURRENT_MONTH is 1-indexed (June 2026 = 6)
+const CURRENT_MONTH = 7;
+const GENERATED = "7/9/2026 2:34 PM";
+
+const rawData = [
+    {
+        unit: "Non-Resort Portfolio",
+        goals:   [619146.40, 961272.00, 979237.60, 468624.80, 157331.20, 185928.80, 187572.80, 86636.00, 60847.20, 85866.40, 107206.40, 218600.80],
+        actuals: [697536.71, 838631.78, 580578.03, 276311.19, 234711.21, 258240.37, 241905.99, 82968.08, 44027.54, 121293.24, 118902.02, 363407.97],
+        source: "keydata"
+    },
+    {
+        unit: "Sandalfoot",
+        goals:   [394680.80, 469024.80, 550054.40, 369689.60, 252362.40, 271476.80, 251369.60, 195699.20, 160876.80, 207887.20, 214428.00, 281435.20],
+        actuals: [244935.12, 483148.84, 485658.17, 328630.74, 303569.56, 297489.2, 246191.85, 91488.72, 54090.92, 63756.41, 119468.51, 81266.92],
+        source: "keydata"
+    },
+    {
+        unit: "Signal Inn",
+        goals:   [164362.40, 210023.20, 225773.60, 147772.00, 118719.20, 122458.40, 140344.80, 87899.20, 46405.60, 73036.00, 68592.00, 100679.20],
+        actuals: [183364.58, 252120.77, 188273.22, 172450.14, 154904.41, 143073.94, 155224.56, 62071.47, 34804.95, 30870.61, 26827.13, 60226.93],
+        source: "keydata"
+    },
+    {
+        unit: "GBB",
+        goals:   [184947.20, 306651.20, 303221.60, 171528.80, 85338.40, 112631.20, 122884.00, 65480.00, 38009.60, 64680.00, 69324.00, 75524.00],
+        actuals: [296424.11, 311982.53, 275221.5, 199149.03, 124808.08, 158768.69, 132753.37, 37311.27, 21590.73, 57779.21, 37798.09, 110394.04],
+        source: "keydata"
+    },
+    {
+        unit: "YCA",
+        goals:   [250884.00, 290628.00, 333684.00, 209952.00, 91432.80, 170674.56, 201032.64, 89640.00, 59760.00, 104580.00, 104580.00, 134460.00],
+        actuals: [63119.95, 33579.4, 72605.35, 25718.09, 0.0, 21452.03, 5743.74, 0.0, 0.0, 0.0, 0.0, 0.0],
+        source: "keydata"
+    },
+    {
+        unit: "Colony Inn",
+        goals:   [150530.40, 203439.60, 266947.20, 188956.80, 110160.00, 205632.00, 242208.00, 108000.00, 72000.00, 126000.00, 126000.00, 162000.00],
+        actuals: [81574.18, 193411.33, 230439.94, 152966.71, 65949.2, 65989.86, 99604.34, 23422.18, 11140.5, 22617.79, 10609.44, 27316.68],
+        source: "keydata"
+    }
+];
+
+const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+document.getElementById('asOfDate').textContent = GENERATED;
+document.getElementById('refreshDate').textContent = GENERATED;
+
+function fmt(n) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+}
+
+function monthStatus(idx) {
+    const m = idx + 1;
+    if (m < CURRENT_MONTH)  return 'actual';
+    if (m === CURRENT_MONTH) return 'current';
+    return 'future';
+}
+
+function renderTable() {
+    const monthFilter = document.getElementById('monthFilter').value;
+    const unitFilter  = document.getElementById('unitFilter').value;
+    const showFilter  = document.getElementById('showFilter').value;
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+
+    let totGoal = 0, totActual = 0, totRows = 0;
+
+    const quarters = ['Q1 (Jan–Mar)', 'Q2 (Apr–Jun)', 'Q3 (Jul–Sep)', 'Q4 (Oct–Dec)'];
+    const showQTotals = monthFilter === 'All';
+
+    rawData.forEach(item => {
+        if (unitFilter !== 'All' && unitFilter !== item.unit) return;
+
+        let qGoal = 0, qActual = 0, qHasAny = false;
+
+        item.goals.forEach((goal, i) => {
+            const mName  = months[i];
+            const status = monthStatus(i);
+            const actual = item.actuals[i];
+
+            if (monthFilter !== 'All' && monthFilter !== mName) return;
+            if (showFilter === 'actual' && status !== 'actual') return;
+            if (showFilter === 'future' && status === 'actual') return;
+
+            const hasActual = actual !== null;
+            const variance  = hasActual ? actual - goal : null;
+            const varPct    = hasActual ? (variance / goal) * 100 : null;
+
+            if (hasActual) { totGoal += goal; totActual += actual; totRows++; }
+            if (showQTotals) {
+                qGoal += goal;
+                if (hasActual) { qActual += actual; qHasAny = true; }
+            }
+
+            let rowCls = '';
+            if (status === 'current') rowCls = 'current-month';
+            else if (!hasActual)      rowCls = 'no-data';
+
+            const actualCell = hasActual
+                ? `<td class="actual-col">${fmt(actual)}</td>`
+                : `<td style="color:#94a3b8">${status === 'future' ? '—' : 'N/A'}</td>`;
+
+            const varCell = variance !== null
+                ? `<td class="${variance >= 0 ? 'variance-pos' : 'variance-neg'}">${variance >= 0 ? '+' : ''}${fmt(variance)}</td>`
+                : `<td style="color:#cbd5e1">—</td>`;
+
+            let pctCell = !hasActual
+                ? `<td style="color:#cbd5e1">—</td>`
+                : `<td class="${varPct >= 0 ? 'variance-pos' : 'variance-neg'}">${varPct >= 0 ? '+' : ''}${varPct.toFixed(1)}%</td>`;
+
+            const row = document.createElement('tr');
+            row.className = rowCls;
+            row.innerHTML = `
+                <td class="text-left unit-name">${item.unit}</td>
+                <td>${mName}</td>
+                <td class="goal-col">${fmt(goal)}</td>
+                ${actualCell}
+                ${varCell}
+                ${pctCell}
+            `;
+            tbody.appendChild(row);
+
+            // Insert quarterly subtotal after months 3, 6, 9, 12
+            if (showQTotals && (i + 1) % 3 === 0) {
+                const qIdx    = Math.floor(i / 3);
+                const qVar    = qHasAny ? qActual - qGoal : null;
+                const qVarPct = (qHasAny && qGoal) ? (qVar / qGoal) * 100 : null;
+
+                const qRow = document.createElement('tr');
+                qRow.className = 'q-total';
+                qRow.innerHTML = `
+                    <td class="text-left">${quarters[qIdx]}</td>
+                    <td style="color:#94a3b8">Total</td>
+                    <td>${fmt(qGoal)}</td>
+                    <td>${qHasAny ? fmt(qActual) : '—'}</td>
+                    <td class="${qVar !== null ? (qVar >= 0 ? 'variance-pos' : 'variance-neg') : ''}">${qVar !== null ? (qVar >= 0 ? '+' : '') + fmt(qVar) : '—'}</td>
+                    <td class="${qVarPct !== null ? (qVarPct >= 0 ? 'variance-pos' : 'variance-neg') : ''}">${qVarPct !== null ? (qVarPct >= 0 ? '+' : '') + qVarPct.toFixed(1) + '%' : '—'}</td>
+                `;
+                tbody.appendChild(qRow);
+                qGoal = 0; qActual = 0; qHasAny = false;
+            }
+        });
+    });
+
+    // Summary cards
+    const totVar    = totActual - totGoal;
+    const totVarPct = totGoal > 0 ? (totVar / totGoal) * 100 : 0;
+
+    // YTD totals (actual months only, KeyData properties)
+    let ytdBudget = 0, ytdActual = 0;
+    rawData.filter(d => d.source === 'keydata').forEach(item => {
+        for (let i = 0; i < CURRENT_MONTH - 1; i++) {
+            ytdBudget += item.goals[i];
+            if (item.actuals[i] !== null) ytdActual += item.actuals[i];
+        }
+    });
+    const ytdVar = ytdActual - ytdBudget;
+
+    document.getElementById('summaryGrid').innerHTML = `
+        <div class="card">
+            <h3>Budget (Selected)</h3>
+            <div class="value">${fmt(totGoal)}</div>
+            <div class="sub">from budget document</div>
+        </div>
+        <div class="card">
+            <h3>Revenue Recognized</h3>
+            <div class="value">${totRows > 0 ? fmt(totActual) : '—'}</div>
+            <div class="sub">confirmed actuals only</div>
+        </div>
+        <div class="card">
+            <h3>Variance ($)</h3>
+            <div class="value ${totVar >= 0 ? 'variance-pos' : 'variance-neg'}">
+                ${totRows > 0 ? (totVar >= 0 ? '+' : '') + fmt(totVar) : '—'}
+            </div>
+            <div class="sub">vs budget</div>
+        </div>
+        <div class="card">
+            <h3>Attainment</h3>
+            <div class="value ${totVar >= 0 ? 'variance-pos' : 'variance-neg'}">
+                ${totRows > 0 ? (totVarPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(totVarPct).toFixed(1) + '%' : '—'}
+            </div>
+            <div class="sub">of budget goal</div>
+        </div>
+        <div class="card">
+            <h3>YTD Jan–May (KeyData Props)</h3>
+            <div class="value ${ytdVar >= 0 ? 'variance-pos' : 'variance-neg'}">
+                ${ytdVar >= 0 ? '+' : ''}${fmt(ytdVar)}
+            </div>
+            <div class="sub">${fmt(ytdActual)} vs ${fmt(ytdBudget)} budgeted</div>
+        </div>
+    `;
+}
+
+renderTable();
+
+function exportCSV() {
+    const monthFilter = document.getElementById('monthFilter').value;
+    const unitFilter  = document.getElementById('unitFilter').value;
+    const showFilter  = document.getElementById('showFilter').value;
+
+    const rows = [['Unit / Portfolio', 'Month', 'Budget Goal ($)', 'Revenue Recognized ($)', 'Variance ($)', 'Variance (%)']];
+
+    rawData.forEach(item => {
+        if (unitFilter !== 'All' && unitFilter !== item.unit) return;
+        item.goals.forEach((goal, i) => {
+            const mName  = months[i];
+            const status = monthStatus(i);
+            const actual = item.actuals[i];
+            if (monthFilter !== 'All' && monthFilter !== mName) return;
+            if (showFilter === 'actual' && status !== 'actual') return;
+            if (showFilter === 'future' && status === 'actual') return;
+            const hasActual = actual !== null;
+            const variance  = hasActual ? (actual - goal).toFixed(2) : '';
+            const varPct    = hasActual ? ((actual - goal) / goal * 100).toFixed(1) + '%' : '';
+            rows.push([item.unit, mName, goal.toFixed(2), hasActual ? actual.toFixed(2) : '', variance, varPct]);
+        });
+    });
+
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `GCVR_Budget_vs_Actuals_${GENERATED.replace(/\//g,'-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
