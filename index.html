@@ -400,15 +400,19 @@ function renderTable() {
     const totVar    = totActual - totGoal;
     const totVarPct = totGoal > 0 ? (totVar / totGoal) * 100 : 0;
 
-    // YTD totals (actual months only, KeyData properties)
+    // YTD totals (actual months only, all 6 properties)
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     let ytdBudget = 0, ytdActual = 0;
-    rawData.filter(d => d.source === 'keydata').forEach(item => {
+    rawData.forEach(item => {
         for (let i = 0; i < CURRENT_MONTH - 1; i++) {
             ytdBudget += item.goals[i];
             if (item.actuals[i] !== null) ytdActual += item.actuals[i];
         }
     });
     const ytdVar = ytdActual - ytdBudget;
+    const ytdLabel = CURRENT_MONTH > 1
+        ? `YTD Jan–${MONTHS[CURRENT_MONTH - 2]} (All Properties)`
+        : 'YTD (All Properties)';
 
     document.getElementById('summaryGrid').innerHTML = `
         <div class="card">
@@ -436,7 +440,7 @@ function renderTable() {
             <div class="sub">of budget goal</div>
         </div>
         <div class="card">
-            <h3>YTD Jan–May (KeyData Props)</h3>
+            <h3>${ytdLabel}</h3>
             <div class="value ${ytdVar >= 0 ? 'variance-pos' : 'variance-neg'}">
                 ${ytdVar >= 0 ? '+' : ''}${fmt(ytdVar)}
             </div>

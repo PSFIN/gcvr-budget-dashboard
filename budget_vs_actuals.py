@@ -521,5 +521,20 @@ print(f"\n{'='*60}")
 print(f"  Report saved: {html_path}")
 print(f"{'='*60}\n")
 
-import subprocess
+import subprocess, shutil
+
+# Copy dashboard.html → index.html for GitHub Pages
+INDEX_PATH = os.path.join(SCRIPT_DIR, 'index.html')
+shutil.copy(DASHBOARD_PATH, INDEX_PATH)
+
+# Push to GitHub Pages
+print("Pushing to GitHub Pages...")
+try:
+    subprocess.run(['git', 'add', 'index.html'], cwd=SCRIPT_DIR, check=True)
+    subprocess.run(['git', 'commit', '-m', f'Update actuals {TODAY_TS}'], cwd=SCRIPT_DIR, check=True)
+    subprocess.run(['git', 'push'], cwd=SCRIPT_DIR, check=True)
+    print("  GitHub Pages updated — live at https://psfin.github.io/gcvr-budget-dashboard/")
+except subprocess.CalledProcessError as e:
+    print(f"  Git push failed: {e} — dashboard.html updated locally only.")
+
 subprocess.run(['open', DASHBOARD_PATH])
