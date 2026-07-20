@@ -253,31 +253,31 @@
 // null  = no data yet (future month, or property not in KeyData)
 // CURRENT_MONTH is 1-indexed (June 2026 = 6)
 const CURRENT_MONTH = 7;
-const GENERATED = "7/15/2026 9:15 AM";
+const GENERATED = "7/20/2026 10:02 AM";
 
 const rawData = [
     {
         unit: "Non-Resort Portfolio",
         goals:   [619146.40, 961272.00, 979237.60, 468624.80, 157331.20, 185928.80, 187572.80, 86636.00, 60847.20, 85866.40, 107206.40, 218600.80],
-        actuals: [697536.71, 838631.78, 580578.03, 276311.19, 235719.98, 259140.37, 247065.54, 87558.14, 45783.34, 122470.49, 125007.28, 366115.4],
+        actuals: [697536.71, 838631.78, 580578.03, 276311.19, 235719.98, 259140.37, 250544.94, 91917.49, 46408.24, 113327.71, 127977.91, 366115.4],
         source: "keydata"
     },
     {
         unit: "Sandalfoot",
         goals:   [394680.80, 469024.80, 550054.40, 369689.60, 252362.40, 271476.80, 251369.60, 195699.20, 160876.80, 207887.20, 214428.00, 281435.20],
-        actuals: [244935.12, 483148.84, 485658.17, 328630.74, 303569.56, 297489.2, 252971.6, 102158.39, 61102.27, 71155.94, 125395.38, 82338.92],
+        actuals: [244935.12, 483148.84, 485658.17, 328630.74, 303569.56, 297489.2, 259173.82, 106267.85, 63803.53, 74584.74, 128656.67, 82338.92],
         source: "keydata"
     },
     {
         unit: "Signal Inn",
         goals:   [164362.40, 210023.20, 225773.60, 147772.00, 118719.20, 122458.40, 140344.80, 87899.20, 46405.60, 73036.00, 68592.00, 100679.20],
-        actuals: [183364.58, 252120.77, 188273.22, 172450.14, 154904.41, 143073.94, 155835.67, 65112.89, 37525.43, 34068.5, 29461.13, 67952.55],
+        actuals: [183364.58, 252120.77, 188273.22, 172450.14, 154904.41, 143073.94, 157130.05, 65697.74, 39183.8, 35630.26, 29461.13, 70702.3],
         source: "keydata"
     },
     {
         unit: "GBB",
         goals:   [184947.20, 306651.20, 303221.60, 171528.80, 85338.40, 112631.20, 122884.00, 65480.00, 38009.60, 64680.00, 69324.00, 75524.00],
-        actuals: [296424.11, 311982.53, 275221.5, 199149.03, 124808.08, 158880.04, 138329.33, 39364.8, 22353.73, 56676.55, 45866.69, 110394.04],
+        actuals: [296424.11, 311982.53, 275221.5, 199149.03, 124808.08, 158880.04, 138241.27, 41129.27, 22353.73, 60746.22, 43714.49, 110394.04],
         source: "keydata"
     },
     {
@@ -289,7 +289,7 @@ const rawData = [
     {
         unit: "Colony Inn",
         goals:   [150530.40, 203439.60, 266947.20, 188956.80, 110160.00, 205632.00, 242208.00, 108000.00, 72000.00, 126000.00, 126000.00, 162000.00],
-        actuals: [81574.18, 193411.33, 230439.94, 152966.71, 65949.2, 65989.86, 108451.38, 24809.29, 12226.8, 24467.02, 10609.44, 27316.68],
+        actuals: [81574.18, 193411.33, 230439.94, 152966.71, 65949.2, 65989.86, 112347.74, 24463.79, 13503.8, 24959.17, 14277.79, 27316.68],
         source: "keydata"
     }
 ];
@@ -400,20 +400,6 @@ function renderTable() {
     const totVar    = totActual - totGoal;
     const totVarPct = totGoal > 0 ? (totVar / totGoal) * 100 : 0;
 
-    // YTD totals (actual months only, all 6 properties)
-    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    let ytdBudget = 0, ytdActual = 0;
-    rawData.forEach(item => {
-        for (let i = 0; i < CURRENT_MONTH - 1; i++) {
-            ytdBudget += item.goals[i];
-            if (item.actuals[i] !== null) ytdActual += item.actuals[i];
-        }
-    });
-    const ytdVar = ytdActual - ytdBudget;
-    const ytdLabel = CURRENT_MONTH > 1
-        ? `YTD Jan–${MONTHS[CURRENT_MONTH - 2]} (All Properties)`
-        : 'YTD (All Properties)';
-
     document.getElementById('summaryGrid').innerHTML = `
         <div class="card">
             <h3>Budget (Selected)</h3>
@@ -438,13 +424,6 @@ function renderTable() {
                 ${totRows > 0 ? (totVarPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(totVarPct).toFixed(1) + '%' : '—'}
             </div>
             <div class="sub">of budget goal</div>
-        </div>
-        <div class="card">
-            <h3>${ytdLabel}</h3>
-            <div class="value ${ytdVar >= 0 ? 'variance-pos' : 'variance-neg'}">
-                ${ytdVar >= 0 ? '+' : ''}${fmt(ytdVar)}
-            </div>
-            <div class="sub">${fmt(ytdActual)} vs ${fmt(ytdBudget)} budgeted</div>
         </div>
     `;
 }
