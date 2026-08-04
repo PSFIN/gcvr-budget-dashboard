@@ -15,16 +15,18 @@ Properties tracked:
 How to run:
   1. Open Chrome — make sure you're logged into KeyData
   2. Open token_bookmarklet.html in any property folder and copy your token
-  3. Run:  python3 budget_vs_actuals.py
+  3. Run:  python3 budget_vs_actuals_v2.py
   4. Paste the token when prompted (or pass it as an argument)
 
 Output:
   - Console table (variance by month and property)
   - budget_vs_actuals_v2_YYYY-MM-DD.html  (visual report saved to this folder)
-  - dashboard_v2.html  (interactive dashboard, patched locally — not pushed to git)
+  - dashboard_v2.html  (interactive dashboard, patched locally)
+  - index.html  (copy of dashboard_v2.html, auto-committed and pushed to git —
+    this is what's live at https://psfin.github.io/gcvr-budget-dashboard/)
 """
 
-import sys, json, urllib.request, os, re
+import sys, json, urllib.request, os, re, shutil, subprocess
 from datetime import date, timedelta
 
 # ── Configuration ──────────────────────────────────────────────────────────────
@@ -548,9 +550,31 @@ if os.path.exists(DASHBOARD_PATH):
 
 print(f"\n{'='*60}")
 print(f"  Report saved: {html_path}")
-print(f"  Dashboard (local preview only, not pushed to git): {DASHBOARD_PATH}")
+print(f"  Dashboard: {DASHBOARD_PATH}")
 print(f"{'='*60}\n")
 
-import subprocess
+# ── Publish to GitHub Pages ─────────────────────────────────────────────────
+INDEX_PATH = os.path.join(OUTPUT_FOLDER, "index.html")
+shutil.copy(DASHBOARD_PATH, INDEX_PATH)
+
+print("Publishing to GitHub Pages...")
+try:
+    subprocess.run(['git', 'add', 'dashboard_v2.html', 'index.html'], cwd=OUTPUT_FOLDER, check=True)
+    commit = subprocess.run(
+        ['git', 'commit', '-m',
+         f'Update actuals and republish v2 dashboard to GitHub Pages\n\n'
+         f'Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>'],
+        cwd=OUTPUT_FOLDER, capture_output=True, text=True
+    )
+    if commit.returncode != 0:
+        if 'nothing to commit' in (commit.stdout + commit.stderr).lower():
+            print("  No changes to publish — data unchanged since last run.")
+        else:
+            print(f"  Git commit failed:\n{commit.stdout}{commit.stderr}")
+    else:
+        subprocess.run(['git', 'push', 'origin', 'main'], cwd=OUTPUT_FOLDER, check=True)
+        print("  GitHub Pages updated — live at https://psfin.github.io/gcvr-budget-dashboard/")
+except subprocess.CalledProcessError as e:
+    print(f"  Git publish failed: {e} — dashboard updated locally only.")
 
 subprocess.run(['open', DASHBOARD_PATH])
