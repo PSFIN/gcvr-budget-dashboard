@@ -4,650 +4,222 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GCVR 2026 Performance Dashboard</title>
-
-    <!-- Google Fonts: Montserrat (Modern Sans), Lora (Coastal Serif), Inter (Data) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
-
     <style>
         :root {
-            /* ChooseGulfCoast.com Coastal Color System */
-            --gulf-navy: #0f2a4a;         /* Deep Blue */
-            --gulf-gold: #c5a059;         /* Siesta Key Sand Gold */
-            --gulf-gold-hover: #b48e47;
-            --gulf-teal: #2e7078;         /* Gulf Watery Teal */
-            --gulf-teal-light: #e3f4f1;
-
-            --coral-rose: #be4d4d;        /* Coastal Sunset Red */
-            --coral-rose-light: #fdf2f2;
-
-            --bg-sand: #FAF9F6;           /* White Sand Beach Background */
-            --card-white: #ffffff;
-            --border-sand: #e6e2da;       /* Warm Soft Border */
-            --border-light: #f5f2eb;
-
-            --text-navy: #0f2a4a;
-            --text-muted: #626b75;
-            --text-light: #a3acb5;
-
-            --font-display: 'Montserrat', sans-serif;
-            --font-serif: 'Lora', serif;
-            --font-sans: 'Inter', sans-serif;
-
-            --shadow: 0 10px 30px -10px rgba(15, 42, 74, 0.04), 0 1px 3px rgba(15, 42, 74, 0.02);
-            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --primary: #2563eb;
+            --success: #059669;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
         }
 
         body {
-            font-family: var(--font-sans);
-            background-color: var(--bg-sand);
-            color: var(--text-navy);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
             margin: 0;
-            padding: 40px 24px;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
+            padding: 20px;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1400px; margin: 0 auto; }
 
-        /* Coastal Brand Header styling */
         header {
-            margin-bottom: 40px;
-            padding-bottom: 30px;
-            border-bottom: 1px solid var(--border-sand);
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 20px;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
+            align-items: center;
             flex-wrap: wrap;
-            gap: 24px;
+            gap: 20px;
         }
 
-        .brand-eyebrow {
-            font-family: var(--font-display);
-            font-size: 0.72rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--gulf-gold);
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        h1 { margin: 0; font-size: 1.8rem; color: var(--primary); }
+        .subtitle { color: #64748b; margin-top: 5px; font-size: 0.9rem; }
 
-        .live-pulse {
-            width: 7px;
-            height: 7px;
-            background-color: var(--gulf-teal);
-            border-radius: 50%;
-            display: inline-block;
-            box-shadow: 0 0 0 2px rgba(46, 112, 120, 0.25);
-            animation: pulse-glow 2s infinite;
-        }
-
-        @keyframes pulse-glow {
-            0% { box-shadow: 0 0 0 0 rgba(46, 112, 120, 0.4); }
-            70% { box-shadow: 0 0 0 6px rgba(46, 112, 120, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(46, 112, 120, 0); }
-        }
-
-        .header-title h1 {
-            margin: 0;
-            font-family: var(--font-serif);
-            font-size: 2.15rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
-            color: var(--gulf-navy);
-        }
-
-        .subtitle {
-            color: var(--text-muted);
-            margin: 6px 0 0 0;
-            font-size: 0.95rem;
-            font-weight: 400;
-        }
-
-        /* Custom Dropdowns */
-        .controls {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .filter-group label {
-            font-family: var(--font-display);
-            font-size: 0.65rem;
-            font-weight: 800;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: .1em;
-        }
-
-        .select-wrapper {
-            position: relative;
-            display: inline-block;
-        }
-
-        select {
-            appearance: none;
-            -webkit-appearance: none;
-            padding: 10px 42px 10px 16px;
-            border-radius: 6px;
-            border: 1px solid var(--border-sand);
-            background-color: var(--card-white);
-            min-width: 180px;
-            font-family: var(--font-sans);
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--gulf-navy);
-            cursor: pointer;
-            outline: none;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-            transition: var(--transition);
-        }
-
-        select:focus {
-            border-color: var(--gulf-gold);
-            box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.15);
-        }
-
-        .select-wrapper::after {
-            content: "";
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-20%);
-            width: 0;
-            height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-top: 5px solid var(--gulf-gold);
-            pointer-events: none;
-        }
-
-        /* Multi-select checkbox dropdowns */
-        .ms-dropdown { position: relative; display: inline-block; }
-
-        .ms-toggle {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 10px 14px;
-            border-radius: 6px;
-            border: 1px solid var(--border-sand);
-            background-color: var(--card-white);
-            min-width: 180px;
-            font-family: var(--font-sans);
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--gulf-navy);
-            cursor: pointer;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-            transition: var(--transition);
-        }
-
-        .ms-toggle:hover, .ms-toggle.open {
-            border-color: var(--gulf-gold);
-        }
-
-        .ms-toggle .ms-chev {
-            width: 0; height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-top: 5px solid var(--gulf-gold);
-            transition: transform 0.2s ease;
-            flex-shrink: 0;
-        }
-
-        .ms-toggle.open .ms-chev { transform: rotate(180deg); }
-
-        .ms-panel {
-            display: none;
-            position: absolute;
-            top: calc(100% + 6px);
-            left: 0;
-            min-width: 230px;
-            max-height: 280px;
-            overflow-y: auto;
-            background: var(--card-white);
-            border: 1px solid var(--border-sand);
-            border-radius: 8px;
-            box-shadow: var(--shadow);
-            padding: 8px;
-            z-index: 30;
-        }
-
-        .ms-panel.open { display: block; }
-
-        .ms-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 7px 8px;
-            border-radius: 5px;
-            font-size: 0.82rem;
-            font-weight: 500;
-            color: var(--text-navy);
-            cursor: pointer;
-        }
-
-        .ms-option:hover { background: var(--border-light); }
-
-        .ms-option input[type="checkbox"] {
-            accent-color: var(--gulf-gold);
-            width: 14px;
-            height: 14px;
-            cursor: pointer;
-        }
-
-        .ms-option.ms-all { font-weight: 700; }
-
-        .ms-divider {
-            height: 1px;
-            background: var(--border-light);
-            margin: 6px 2px;
-        }
-
-        /* Hoverable figures with a calculation tooltip (custom, JS-positioned) */
-        .calc-hint {
-            cursor: help;
-            border-bottom: 1px dotted var(--text-light);
-        }
-
-        .calc-hint-badge { cursor: help; }
-
-        #calcTooltip {
-            position: fixed;
-            display: none;
-            background: var(--gulf-navy);
-            color: #fff;
-            font-family: var(--font-sans);
-            font-size: 0.75rem;
-            font-weight: 500;
-            line-height: 1.6;
-            padding: 9px 13px;
-            border-radius: 7px;
-            white-space: pre-line;
-            box-shadow: var(--shadow);
-            z-index: 1000;
-            max-width: 260px;
-            pointer-events: none;
-        }
-
-        /* Gulf Coast Gold CTA Button */
-        .export-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 11px 22px;
-            background-color: var(--gulf-gold);
-            color: var(--card-white);
-            border: none;
-            border-radius: 6px;
-            font-family: var(--font-display);
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(197, 160, 89, 0.2);
-            transition: var(--transition);
-        }
-
-        .export-btn:hover {
-            background-color: var(--gulf-gold-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(197, 160, 89, 0.3);
-        }
-
-        /* Luxury Cards Grid */
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
         .card {
-            background: var(--card-white);
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-light);
-            border-top: 3px solid var(--gulf-navy);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: var(--transition);
+            background: var(--card);
+            padding: 18px 20px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
         }
 
-        .card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 30px -5px rgba(15, 42, 74, 0.08);
-        }
+        .card h3 { margin: 0 0 8px 0; font-size: 0.78rem; color: #64748b; text-transform: uppercase; letter-spacing: .04em; }
+        .card .value { font-size: 1.5rem; font-weight: 700; }
+        .card .sub { font-size: 0.78rem; color: #94a3b8; margin-top: 4px; }
 
-        /* Accent top line on gold card */
-        .card:nth-child(2), .card:nth-child(4) {
-            border-top: 3px solid var(--gulf-gold);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .card h3 {
-            margin: 0;
-            font-family: var(--font-display);
-            font-size: 0.72rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: .08em;
-            font-weight: 700;
-        }
-
-        .card-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: var(--bg-sand);
-            color: var(--gulf-gold);
-        }
-
-        .card .value {
-            font-size: 2.1rem;
-            font-weight: 700;
-            color: var(--gulf-navy);
-            letter-spacing: -0.02em;
-            margin-bottom: 6px;
-            font-family: var(--font-serif);
-        }
-
-        .card .sub {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-
-        /* Section headings above table blocks */
-        .section-heading h2 {
-            margin: 0 0 4px;
-            font-family: var(--font-serif);
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--gulf-navy);
-        }
-        .section-heading p {
-            margin: 0 0 16px;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            max-width: 760px;
-        }
-
-        /* Gulf Table Layout */
         .table-container {
-            background: var(--card-white);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
+            background: var(--card);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07);
             overflow-x: auto;
-            overflow-y: hidden;
-            border: 1px solid var(--border-sand);
-            margin-bottom: 32px;
+            border: 1px solid var(--border);
         }
 
-        .table-container .section-heading {
-            padding: 20px 20px 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            text-align: right;
-            font-size: 0.85rem;
-        }
+        table { width: 100%; border-collapse: collapse; text-align: right; font-size: 0.85rem; }
 
         th {
-            background: var(--bg-sand);
-            padding: 12px 14px;
-            font-family: var(--font-display);
-            font-weight: 700;
-            font-size: 0.68rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--gulf-navy);
-            border-bottom: 1px solid var(--border-sand);
-            white-space: normal;
-            line-height: 1.35;
-            vertical-align: bottom;
+            background: #f1f5f9;
+            padding: 12px 15px;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+            color: #475569;
         }
 
-        td {
-            padding: 14px 20px;
-            border-bottom: 1px solid var(--border-light);
-            color: var(--text-navy);
-            font-variant-numeric: tabular-nums;
-            transition: var(--transition);
-        }
+        td { padding: 10px 15px; border-bottom: 1px solid var(--border); }
 
         tr:last-child td { border-bottom: none; }
-
-        tr:hover td {
-            background-color: var(--border-light);
-        }
-
-        /* Sunset Amber highlight for active month */
-        tr.current-month td {
-            background: #fffdf5;
-            border-bottom: 1px solid #f9eed7;
-            border-top: 1px solid #f9eed7;
-        }
-
-        tr.current-month td:first-child {
-            box-shadow: inset 4px 0 0 0 var(--gulf-gold);
-        }
-
-        tr.no-data td {
-            color: var(--text-light);
-        }
+        tr:hover { background-color: #f8fafc; }
+        tr.current-month td { background: #fffbeb; }
+        tr.no-data td { color: #94a3b8; }
 
         .text-left { text-align: left; }
+        .unit-name { font-weight: 600; color: var(--primary); }
 
-        .unit-name {
-            font-weight: 700;
-            color: var(--gulf-navy);
-            font-family: var(--font-serif);
-            font-size: 0.9rem;
-        }
+        .variance-pos { color: var(--success); font-weight: 600; }
+        .variance-neg { color: var(--danger); font-weight: 600; }
 
-        /* Dynamic Badges with Soft Coastal Hues */
+        .goal-col { color: #64748b; }
+        .actual-col { font-weight: 500; }
+
         .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 10px;
-            border-radius: 50px;
-            font-family: var(--font-sans);
-            font-size: 0.72rem;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
             font-weight: 600;
         }
+        .badge-pos { background: #dcfce7; color: #166534; }
+        .badge-neg { background: #fee2e2; color: #991b1b; }
+        .badge-na  { background: #f1f5f9; color: #94a3b8; }
+        .badge-cur { background: #fef9c3; color: #854d0e; }
 
-        .badge-pos {
-            background: var(--gulf-teal-light);
-            color: var(--gulf-teal);
-        }
+        .controls { display: flex; gap: 15px; flex-wrap: wrap; }
 
-        .badge-neg {
-            background: var(--coral-rose-light);
-            color: var(--coral-rose);
-        }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
 
-        .badge-na {
-            background: var(--border-light);
-            color: var(--text-muted);
-        }
-
-        .badge-cur {
-            background: #fffbeb;
-            color: #d97706;
-        }
-
-        .goal-col { color: var(--text-muted); }
-        .actual-col { font-weight: 700; color: var(--gulf-navy); }
-
-        .variance-pos {
-            color: var(--gulf-teal);
+        .filter-group label {
+            font-size: 0.72rem;
             font-weight: 700;
-        }
-
-        .variance-neg {
-            color: var(--coral-rose);
-            font-weight: 700;
-        }
-
-        /* Aggregation Row Header styling */
-        tr.q-total td {
-            background: var(--bg-sand);
-            font-weight: 700;
-            font-size: 0.8rem;
-            color: var(--gulf-navy);
-            border-top: 1px solid var(--border-sand);
-            border-bottom: 1px solid var(--border-sand);
-        }
-        tr.q-total .unit-name {
-            font-family: var(--font-serif);
+            color: #64748b;
             text-transform: uppercase;
-            letter-spacing: 0.02em;
+            letter-spacing: .05em;
         }
 
-        /* Legends */
+        select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: white;
+            min-width: 180px;
+            font-size: 0.87rem;
+        }
+
+        .export-btn {
+            align-self: flex-end;
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.87rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .export-btn:hover { background: #1d4ed8; }
+
+        tr.q-total td {
+            background: #f1f5f9;
+            font-weight: 700;
+            font-size: 0.82rem;
+            color: #334155;
+            border-top: 2px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        tr.q-total .variance-pos { color: var(--success); }
+        tr.q-total .variance-neg { color: var(--danger); }
+
         .legend {
             display: flex;
-            gap: 24px;
+            gap: 16px;
             font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-top: 20px;
+            color: #64748b;
+            margin-top: 12px;
             flex-wrap: wrap;
         }
-
-        .legend span {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 600;
-            font-family: var(--font-display);
-            text-transform: uppercase;
-            font-size: 0.65rem;
-            letter-spacing: 0.05em;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .dot-actual { background: var(--gulf-teal); }
-        .dot-cur    { background: var(--gulf-gold); }
+        .legend span { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .dot-actual { background: #059669; }
+        .dot-cur    { background: #f59e0b; }
+        .dot-na     { background: #cbd5e1; }
 
         .refresh-note {
-            font-size: 0.75rem;
-            color: var(--text-light);
+            font-size: 0.78rem;
+            color: #94a3b8;
             text-align: right;
-            margin-top: 20px;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 <div class="container">
     <header>
-        <div class="header-title">
-            <span class="brand-eyebrow"><span class="live-pulse"></span> GCVR Portfolio Analytics</span>
-            <h1>Performance Dashboard</h1>
+        <div>
+            <h1>GCVR 2026 Performance Dashboard</h1>
             <p class="subtitle">Budget Goals vs. Revenue Recognized &nbsp;·&nbsp; Data as of <span id="asOfDate"></span></p>
         </div>
         <div class="controls">
             <div class="filter-group">
                 <label>Portfolio / Unit</label>
-                <div class="ms-dropdown" id="unitFilterDropdown">
-                    <button type="button" class="ms-toggle" id="unitFilterToggle" onclick="toggleMsDropdown('unitFilterDropdown')">
-                        <span id="unitFilterLabel">All Units</span>
-                        <span class="ms-chev"></span>
-                    </button>
-                    <div class="ms-panel" id="unitFilterPanel">
-                        <label class="ms-option ms-all"><input type="checkbox" class="ms-all-checkbox" checked> All Units</label>
-                        <div class="ms-divider"></div>
-                        <label class="ms-option"><input type="checkbox" value="Non-Resort Portfolio" checked> Non-Resort Portfolio</label>
-                        <label class="ms-option"><input type="checkbox" value="Sandalfoot" checked> Sandalfoot</label>
-                        <label class="ms-option"><input type="checkbox" value="Signal Inn" checked> Signal Inn</label>
-                        <label class="ms-option"><input type="checkbox" value="GBB" checked> GBB</label>
-                        <label class="ms-option"><input type="checkbox" value="YCA" checked> YCA</label>
-                        <label class="ms-option"><input type="checkbox" value="Colony Inn" checked> Colony Inn</label>
-                    </div>
-                </div>
+                <select id="unitFilter" onchange="renderTable()">
+                    <option value="All">All Units</option>
+                    <option value="Non-Resort Portfolio">Non-Resort Portfolio</option>
+                    <option value="Sandalfoot">Sandalfoot</option>
+                    <option value="Signal Inn">Signal Inn</option>
+                    <option value="GBB">GBB</option>
+                    <option value="YCA">YCA</option>
+                    <option value="Colony Inn">Colony Inn</option>
+                </select>
             </div>
             <div class="filter-group">
                 <label>Month</label>
-                <div class="ms-dropdown" id="monthFilterDropdown">
-                    <button type="button" class="ms-toggle" id="monthFilterToggle" onclick="toggleMsDropdown('monthFilterDropdown')">
-                        <span id="monthFilterLabel">Full Year</span>
-                        <span class="ms-chev"></span>
-                    </button>
-                    <div class="ms-panel" id="monthFilterPanel">
-                        <label class="ms-option ms-all"><input type="checkbox" class="ms-all-checkbox" checked> Full Year</label>
-                        <div class="ms-divider"></div>
-                        <label class="ms-option"><input type="checkbox" value="January" checked> January</label>
-                        <label class="ms-option"><input type="checkbox" value="February" checked> February</label>
-                        <label class="ms-option"><input type="checkbox" value="March" checked> March</label>
-                        <label class="ms-option"><input type="checkbox" value="April" checked> April</label>
-                        <label class="ms-option"><input type="checkbox" value="May" checked> May</label>
-                        <label class="ms-option"><input type="checkbox" value="June" checked> June</label>
-                        <label class="ms-option"><input type="checkbox" value="July" checked> July</label>
-                        <label class="ms-option"><input type="checkbox" value="August" checked> August</label>
-                        <label class="ms-option"><input type="checkbox" value="September" checked> September</label>
-                        <label class="ms-option"><input type="checkbox" value="October" checked> October</label>
-                        <label class="ms-option"><input type="checkbox" value="November" checked> November</label>
-                        <label class="ms-option"><input type="checkbox" value="December" checked> December</label>
-                    </div>
-                </div>
+                <select id="monthFilter" onchange="renderTable()">
+                    <option value="All">Full Year</option>
+                    <option value="January">January</option>
+                    <option value="February">February</option>
+                    <option value="March">March</option>
+                    <option value="April">April</option>
+                    <option value="May">May</option>
+                    <option value="June">June</option>
+                    <option value="July">July</option>
+                    <option value="August">August</option>
+                    <option value="September">September</option>
+                    <option value="October">October</option>
+                    <option value="November">November</option>
+                    <option value="December">December</option>
+                </select>
             </div>
             <div class="filter-group">
                 <label>Show</label>
-                <div class="ms-dropdown" id="showFilterDropdown">
-                    <button type="button" class="ms-toggle" id="showFilterToggle" onclick="toggleMsDropdown('showFilterDropdown')">
-                        <span id="showFilterLabel">All Months</span>
-                        <span class="ms-chev"></span>
-                    </button>
-                    <div class="ms-panel" id="showFilterPanel">
-                        <label class="ms-option ms-all"><input type="checkbox" class="ms-all-checkbox" checked> All Months</label>
-                        <div class="ms-divider"></div>
-                        <label class="ms-option"><input type="checkbox" value="actual" checked> Actual (confirmed)</label>
-                        <label class="ms-option"><input type="checkbox" value="current" checked> Current (in progress)</label>
-                        <label class="ms-option"><input type="checkbox" value="future" checked> Future (pacing)</label>
-                    </div>
-                </div>
+                <select id="showFilter" onchange="renderTable()">
+                    <option value="all">All Months</option>
+                    <option value="actual">Actuals Only</option>
+                    <option value="future">Future / Pacing</option>
+                </select>
             </div>
-            <button class="export-btn" onclick="exportCSV()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Export CSV
-            </button>
+            <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
         </div>
     </header>
 
@@ -663,8 +235,6 @@
                     <th class="actual-col">Revenue Recognized</th>
                     <th>Variance ($)</th>
                     <th>Variance (%)</th>
-                    <th class="goal-col">Last Year (Pace)</th>
-                    <th>YoY %</th>
                 </tr>
             </thead>
             <tbody id="tableBody"></tbody>
@@ -675,81 +245,51 @@
         <span><span class="dot dot-actual"></span>Confirmed actuals from KeyData</span>
         <span><span class="dot dot-cur"></span>Current month (in progress)</span>
     </div>
-    <p class="refresh-note">Last refreshed: <span id="refreshDate"></span> &nbsp;·&nbsp; Run budget_vs_actuals_v2.py weekly to update</p>
-
-    <div class="table-container" style="margin-top:24px;">
-        <div class="section-heading">
-            <h2>Roadmap to Budget — Weekly Targets</h2>
-            <p>
-                Weekly revenue required for the remainder of this year to meet each portfolio's annual budget,
-                based on YTD data.<br>(does not account for seasonality)
-            </p>
-        </div>
-        <table id="weeklyTargetTable">
-            <thead>
-                <tr>
-                    <th class="text-left">Unit /<br>Portfolio</th>
-                    <th class="goal-col">Target</th>
-                    <th class="actual-col">Revenue<br>Recognized</th>
-                    <th>Remaining<br>to Budget</th>
-                    <th>Weeks<br>Left</th>
-                    <th>Weekly Target<br>Required</th>
-                    <th class="goal-col">YTD Weekly<br>Pace</th>
-                    <th>Weekly Pace<br>v/s Weekly Target</th>
-                </tr>
-            </thead>
-            <tbody id="weeklyTargetBody"></tbody>
-        </table>
-    </div>
+    <p class="refresh-note">Last refreshed: <span id="refreshDate"></span> &nbsp;·&nbsp; Run budget_vs_actuals.py weekly to update</p>
 </div>
 
 <script>
-// ── Data — actuals patched weekly by budget_vs_actuals_v2.py ──────────────────
+// ── Data — actuals patched weekly by budget_vs_actuals.py ─────────────────────
+// null  = no data yet (future month, or property not in KeyData)
+// CURRENT_MONTH is 1-indexed (June 2026 = 6)
 const CURRENT_MONTH = 8;
-const GENERATED = "8/4/2026 11:14 AM";
-const AS_OF_DATE = "2026-08-04";   // ISO date used for weeks-left math below
+const GENERATED = "8/10/2026 9:20 AM";
 
 const rawData = [
     {
         unit: "Non-Resort Portfolio",
         goals:   [619146.40, 961272.00, 979237.60, 468624.80, 157331.20, 185928.80, 187572.80, 86636.00, 60847.20, 85866.40, 107206.40, 218600.80],
-        actuals: [697536.71, 838631.78, 580578.03, 276311.19, 235719.98, 260419.97, 260578.12, 120190.78, 58292.92, 114027.21, 145492.05, 379800.01],
-        lastYear: [601575.59, 789042.17, 510847.24, 308768.5, 223350.73, 264867.09, 238425.32, 77666.5, 40460.62, 102775.1, 79530.69, 150647.52],
+        actuals: [697536.71, 838631.78, 580578.03, 276311.19, 235719.98, 260419.97, 260689.12, 126271.33, 59380.62, 124052.42, 146369.48, 379800.01],
         source: "keydata"
     },
     {
         unit: "Sandalfoot",
         goals:   [394680.80, 469024.80, 550054.40, 369689.60, 252362.40, 271476.80, 251369.60, 195699.20, 160876.80, 207887.20, 214428.00, 281435.20],
-        actuals: [244935.12, 483148.84, 485658.17, 328630.74, 303569.56, 297489.2, 268186.14, 122104.98, 74106.04, 88574.85, 134016.3, 99653.68],
-        lastYear: [42554.42, 123919.02, 185995.6, 151089.96, 163283.47, 230591.26, 227786.2, 128409.73, 51337.71, 75919.87, 76651.79, 81024.79],
+        actuals: [244935.12, 483148.84, 485658.17, 328630.74, 303569.56, 297489.2, 268186.14, 129520.72, 77075.14, 91610.06, 143943.08, 104795.29],
         source: "keydata"
     },
     {
         unit: "Signal Inn",
         goals:   [164362.40, 210023.20, 225773.60, 147772.00, 118719.20, 122458.40, 140344.80, 87899.20, 46405.60, 73036.00, 68592.00, 100679.20],
-        actuals: [183364.58, 252120.77, 188273.22, 172450.14, 154904.41, 143073.94, 158042.04, 82113.08, 45874.59, 46281.18, 38700.81, 70702.3],
-        lastYear: [203766.93, 258441.7, 243276.42, 149922.34, 133805.44, 160785.6, 147737.42, 92904.28, 33447.92, 67383.05, 99365.16, 53204.14],
+        actuals: [183364.58, 252120.77, 188273.22, 172450.14, 154904.41, 143073.94, 158042.04, 85625.85, 46848.26, 46815.15, 41779.23, 73126.5],
         source: "keydata"
     },
     {
         unit: "GBB",
         goals:   [184947.20, 306651.20, 303221.60, 171528.80, 85338.40, 112631.20, 122884.00, 65480.00, 38009.60, 64680.00, 69324.00, 75524.00],
-        actuals: [296424.11, 311982.53, 275221.5, 199149.03, 124808.08, 158880.04, 146237.87, 47832.57, 24635.17, 67684.03, 48550.99, 111070.04],
-        lastYear: [241738.64, 350557.48, 330774.28, 189816.55, 88426.54, 141601.33, 150665.19, 52527.87, 27972.27, 60188.61, 28663.28, 69869.7],
+        actuals: [296424.11, 311982.53, 275221.5, 199149.03, 124808.08, 158880.04, 146237.87, 53597.57, 24635.17, 71153.74, 49468.2, 113015.64],
         source: "keydata"
     },
     {
         unit: "YCA",
         goals:   [250884.00, 290628.00, 333684.00, 209952.00, 91432.80, 170674.56, 201032.64, 89640.00, 59760.00, 104580.00, 104580.00, 134460.00],
         actuals: [63119.95, 33579.4, 72605.35, 25718.09, 0.0, 21452.03, 5913.84, 0.0, 0.0, 0.0, 0.0, 0.0],
-        lastYear: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         source: "keydata"
     },
     {
         unit: "Colony Inn",
         goals:   [150530.40, 203439.60, 266947.20, 188956.80, 110160.00, 205632.00, 242208.00, 108000.00, 72000.00, 126000.00, 126000.00, 162000.00],
-        actuals: [81574.18, 193411.33, 230439.94, 152966.71, 65949.2, 65989.86, 121454.89, 42690.11, 20873.74, 29884.49, 17776.01, 28854.28],
-        lastYear: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 9950.0, 5672.0, 23847.41, 29813.9],
+        actuals: [81574.18, 193411.33, 230439.94, 152966.71, 65949.2, 65989.86, 121454.89, 50382.8, 23458.43, 33773.84, 18895.86, 31871.88],
         source: "keydata"
     }
 ];
@@ -771,44 +311,39 @@ function monthStatus(idx) {
 }
 
 function renderTable() {
-    const selectedUnits    = unitMS.getSelected();
-    const selectedMonths   = monthMS.getSelected();
-    const selectedStatuses = showMS.getSelected();
+    const monthFilter = document.getElementById('monthFilter').value;
+    const unitFilter  = document.getElementById('unitFilter').value;
+    const showFilter  = document.getElementById('showFilter').value;
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
 
-    let totGoal = 0, totActual = 0, totRows = 0, totLastYear = 0, totLYRows = 0;
+    let totGoal = 0, totActual = 0, totRows = 0;
 
     const quarters = ['Q1 (Jan–Mar)', 'Q2 (Apr–Jun)', 'Q3 (Jul–Sep)', 'Q4 (Oct–Dec)'];
-    const showQTotals = selectedMonths.length === months.length;
+    const showQTotals = monthFilter === 'All';
 
     rawData.forEach(item => {
-        if (!selectedUnits.includes(item.unit)) return;
+        if (unitFilter !== 'All' && unitFilter !== item.unit) return;
 
-        let qGoal = 0, qActual = 0, qHasAny = false, qLastYear = 0, qHasLY = false;
+        let qGoal = 0, qActual = 0, qHasAny = false;
 
         item.goals.forEach((goal, i) => {
             const mName  = months[i];
             const status = monthStatus(i);
             const actual = item.actuals[i];
-            const lastYear = item.lastYear ? item.lastYear[i] : null;
 
-            if (!selectedMonths.includes(mName)) return;
-            if (!selectedStatuses.includes(status)) return;
+            if (monthFilter !== 'All' && monthFilter !== mName) return;
+            if (showFilter === 'actual' && status !== 'actual') return;
+            if (showFilter === 'future' && status === 'actual') return;
 
-            const hasActual   = actual !== null;
-            const hasLastYear = lastYear !== null && lastYear !== undefined;
+            const hasActual = actual !== null;
             const variance  = hasActual ? actual - goal : null;
             const varPct    = hasActual ? (variance / goal) * 100 : null;
-            const yoyVar    = (hasActual && hasLastYear) ? actual - lastYear : null;
-            const yoyPct    = (yoyVar !== null && lastYear) ? (yoyVar / lastYear) * 100 : null;
 
             if (hasActual) { totGoal += goal; totActual += actual; totRows++; }
-            if (hasActual && hasLastYear) { totLastYear += lastYear; totLYRows++; }
             if (showQTotals) {
                 qGoal += goal;
                 if (hasActual) { qActual += actual; qHasAny = true; }
-                if (hasActual && hasLastYear) { qLastYear += lastYear; qHasLY = true; }
             }
 
             let rowCls = '';
@@ -817,7 +352,7 @@ function renderTable() {
 
             const actualCell = hasActual
                 ? `<td class="actual-col">${fmt(actual)}</td>`
-                : `<td style="color:#a3acb5">${status === 'future' ? '—' : 'N/A'}</td>`;
+                : `<td style="color:#94a3b8">${status === 'future' ? '—' : 'N/A'}</td>`;
 
             const varCell = variance !== null
                 ? `<td class="${variance >= 0 ? 'variance-pos' : 'variance-neg'}">${variance >= 0 ? '+' : ''}${fmt(variance)}</td>`
@@ -825,27 +360,17 @@ function renderTable() {
 
             let pctCell = !hasActual
                 ? `<td style="color:#cbd5e1">—</td>`
-                : `<td><span class="badge ${varPct >= 0 ? 'badge-pos' : 'badge-neg'}">${varPct >= 0 ? '↑' : '↓'} ${Math.abs(varPct).toFixed(1)}%</span></td>`;
-
-            const lastYearCell = hasLastYear
-                ? `<td class="goal-col">${fmt(lastYear)}</td>`
-                : `<td style="color:#a3acb5">—</td>`;
-
-            const yoyCell = yoyPct !== null
-                ? `<td><span class="badge ${yoyPct >= 0 ? 'badge-pos' : 'badge-neg'}">${yoyPct >= 0 ? '↑' : '↓'} ${Math.abs(yoyPct).toFixed(1)}%</span></td>`
-                : `<td style="color:#cbd5e1">—</td>`;
+                : `<td class="${varPct >= 0 ? 'variance-pos' : 'variance-neg'}">${varPct >= 0 ? '+' : ''}${varPct.toFixed(1)}%</td>`;
 
             const row = document.createElement('tr');
             row.className = rowCls;
             row.innerHTML = `
                 <td class="text-left unit-name">${item.unit}</td>
-                <td style="font-weight: 600;">${mName}</td>
+                <td>${mName}</td>
                 <td class="goal-col">${fmt(goal)}</td>
                 ${actualCell}
                 ${varCell}
                 ${pctCell}
-                ${lastYearCell}
-                ${yoyCell}
             `;
             tbody.appendChild(row);
 
@@ -854,304 +379,77 @@ function renderTable() {
                 const qIdx    = Math.floor(i / 3);
                 const qVar    = qHasAny ? qActual - qGoal : null;
                 const qVarPct = (qHasAny && qGoal) ? (qVar / qGoal) * 100 : null;
-                const qYoyVar = (qHasAny && qHasLY) ? qActual - qLastYear : null;
-                const qYoyPct = (qYoyVar !== null && qLastYear) ? (qYoyVar / qLastYear) * 100 : null;
 
                 const qRow = document.createElement('tr');
                 qRow.className = 'q-total';
                 qRow.innerHTML = `
-                    <td class="text-left unit-name" style="font-weight: 700;">${quarters[qIdx]}</td>
-                    <td style="color:#626b75; font-weight: 600;">Total</td>
+                    <td class="text-left">${quarters[qIdx]}</td>
+                    <td style="color:#94a3b8">Total</td>
                     <td>${fmt(qGoal)}</td>
                     <td>${qHasAny ? fmt(qActual) : '—'}</td>
                     <td class="${qVar !== null ? (qVar >= 0 ? 'variance-pos' : 'variance-neg') : ''}">${qVar !== null ? (qVar >= 0 ? '+' : '') + fmt(qVar) : '—'}</td>
-                    <td>${qVarPct !== null ? `<span class="badge ${qVarPct >= 0 ? 'badge-pos' : 'badge-neg'}">${qVarPct >= 0 ? '↑' : '↓'} ${Math.abs(qVarPct).toFixed(1)}%</span>` : '—'}</td>
-                    <td>${qHasLY ? fmt(qLastYear) : '—'}</td>
-                    <td>${qYoyPct !== null ? `<span class="badge ${qYoyPct >= 0 ? 'badge-pos' : 'badge-neg'}">${qYoyPct >= 0 ? '↑' : '↓'} ${Math.abs(qYoyPct).toFixed(1)}%</span>` : '—'}</td>
+                    <td class="${qVarPct !== null ? (qVarPct >= 0 ? 'variance-pos' : 'variance-neg') : ''}">${qVarPct !== null ? (qVarPct >= 0 ? '+' : '') + qVarPct.toFixed(1) + '%' : '—'}</td>
                 `;
                 tbody.appendChild(qRow);
-                qGoal = 0; qActual = 0; qHasAny = false; qLastYear = 0; qHasLY = false;
+                qGoal = 0; qActual = 0; qHasAny = false;
             }
         });
     });
 
-    // Summary calculations
+    // Summary cards
     const totVar    = totActual - totGoal;
     const totVarPct = totGoal > 0 ? (totVar / totGoal) * 100 : 0;
-    const totYoyVar = totActual - totLastYear;
-    const totYoyPct = totLastYear > 0 ? (totYoyVar / totLastYear) * 100 : 0;
 
     document.getElementById('summaryGrid').innerHTML = `
         <div class="card">
-            <div class="card-header">
-                <h3>Target (Selected)</h3>
-                <div class="card-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle></svg>
-                </div>
-            </div>
+            <h3>Budget (Selected)</h3>
             <div class="value">${fmt(totGoal)}</div>
             <div class="sub">from budget document</div>
         </div>
         <div class="card">
-            <div class="card-header">
-                <h3>Revenue Recognized (Selected)</h3>
-                <div class="card-icon" style="background-color: var(--gulf-teal-light); color: var(--gulf-teal);">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                </div>
-            </div>
+            <h3>Revenue Recognized</h3>
             <div class="value">${totRows > 0 ? fmt(totActual) : '—'}</div>
-            <div class="sub">Revenue by Check-Ins</div>
+            <div class="sub">confirmed actuals only</div>
         </div>
         <div class="card">
-            <div class="card-header">
-                <h3>Variance ($)</h3>
-                <div class="card-icon" style="background-color: ${totVar >= 0 ? 'var(--gulf-teal-light)' : 'var(--coral-rose-light)'}; color: ${totVar >= 0 ? 'var(--gulf-teal)' : 'var(--coral-rose)'};">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>
-                </div>
-            </div>
+            <h3>Variance ($)</h3>
             <div class="value ${totVar >= 0 ? 'variance-pos' : 'variance-neg'}">
                 ${totRows > 0 ? (totVar >= 0 ? '+' : '') + fmt(totVar) : '—'}
             </div>
             <div class="sub">vs budget</div>
         </div>
         <div class="card">
-            <div class="card-header">
-                <h3>Revenue Recognized v/s Target</h3>
-                <div class="card-icon" style="background-color: ${totVar >= 0 ? 'var(--gulf-teal-light)' : 'var(--coral-rose-light)'}; color: ${totVar >= 0 ? 'var(--gulf-teal)' : 'var(--coral-rose)'};">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                </div>
-            </div>
+            <h3>Attainment</h3>
             <div class="value ${totVar >= 0 ? 'variance-pos' : 'variance-neg'}">
                 ${totRows > 0 ? (totVarPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(totVarPct).toFixed(1) + '%' : '—'}
             </div>
-            <div class="sub"></div>
-        </div>
-        <div class="card">
-            <div class="card-header">
-                <h3>Revenue Recognized YOY</h3>
-                <div class="card-icon" style="background-color: ${totYoyVar >= 0 ? 'var(--gulf-teal-light)' : 'var(--coral-rose-light)'}; color: ${totYoyVar >= 0 ? 'var(--gulf-teal)' : 'var(--coral-rose)'};">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                </div>
-            </div>
-            <div class="value ${totYoyVar >= 0 ? 'variance-pos' : 'variance-neg'}">
-                ${totLYRows > 0 ? (totYoyVar >= 0 ? '↑' : '↓') + ' ' + Math.abs(totYoyPct).toFixed(1) + '%' : '—'}
-            </div>
-            <div class="sub">${totLYRows > 0 ? fmt(totActual) + ' vs ' + fmt(totLastYear) + ' LY' : 'last year data not loaded'}</div>
+            <div class="sub">of budget goal</div>
         </div>
     `;
 }
 
-// ── Path to Budget — flat weekly target ────────────────────────────────────
-const YEAR_START = new Date(2026, 0, 1);
-const YEAR_END   = new Date(2026, 11, 31);
-const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
-
-function weeksLeftAndElapsed() {
-    const asOf = new Date(AS_OF_DATE + 'T00:00:00');
-    const weeksLeft    = Math.max((YEAR_END - asOf) / MS_PER_WEEK, 0);
-    const weeksElapsed = Math.max((asOf - YEAR_START) / MS_PER_WEEK, 0.1); // avoid div/0 in January
-    return { weeksLeft, weeksElapsed };
-}
-
-function weeklyTargetRow(unit, target, revenueRecognized, actualYTD, weeksLeft, weeksElapsed, isTotal) {
-    // Remaining to Budget = Target − Revenue Recognized (mirrors the top scorecards)
-    const remaining    = target - revenueRecognized;
-    const met          = remaining <= 0;
-    const weeklyTarget = met ? 0 : (weeksLeft > 0 ? remaining / weeksLeft : remaining);
-    const currentPace  = actualYTD / weeksElapsed;
-    // Weekly Pace v/s Weekly Target = (YTD Weekly Pace − Weekly Target) ÷ Weekly Target
-    const paceVsTarget = (!met && weeklyTarget > 0) ? ((currentPace - weeklyTarget) / weeklyTarget) * 100 : null;
-
-    const changeTip = met
-        ? 'Target already met — pace is no longer measured against a weekly target'
-        : `YTD Weekly Pace: ${fmt(currentPace)} − Weekly Target: ${fmt(weeklyTarget)}\n÷ Weekly Target: ${fmt(weeklyTarget)}\n= ${paceVsTarget >= 0 ? '+' : ''}${paceVsTarget.toFixed(0)}%`;
-    const changeCell = met
-        ? `<td><span class="calc-hint-badge" data-tip="${changeTip}" style="color:#cbd5e1">—</span></td>`
-        : `<td><span class="badge calc-hint-badge ${paceVsTarget >= 0 ? 'badge-pos' : 'badge-neg'}" data-tip="${changeTip}">${paceVsTarget >= 0 ? '↑' : '↓'} ${Math.abs(paceVsTarget).toFixed(0)}%</span></td>`;
-
-    const remainingTip = met
-        ? `Remaining to Budget = Target − Revenue Recognized\n${fmt(target)} − ${fmt(revenueRecognized)}\n= Target already met`
-        : `Remaining to Budget = Target − Revenue Recognized\n${fmt(target)} − ${fmt(revenueRecognized)}\n= ${fmt(remaining)}`;
-    const remainingCell = `<td class="${met ? 'variance-pos' : 'variance-neg'}"><span class="calc-hint" data-tip="${remainingTip}">${met ? 'Met' : fmt(remaining)}</span></td>`;
-
-    const weeklyTargetTip = met
-        ? 'Target already met — no weekly target needed'
-        : `Remaining to Budget: ${fmt(remaining)}\n÷ Weeks Left: ${weeksLeft.toFixed(1)}\n= ${fmt(weeklyTarget)} / week`;
-    const weeklyTargetCell = met
-        ? '—'
-        : `<span class="calc-hint" data-tip="${weeklyTargetTip}">${fmt(weeklyTarget)}</span>`;
-
-    const currentPaceTip = `YTD Actuals: ${fmt(actualYTD)}\n÷ Weeks Elapsed: ${weeksElapsed.toFixed(1)}\n= ${fmt(currentPace)} / week`;
-    const currentPaceCell = `<span class="calc-hint" data-tip="${currentPaceTip}">${fmt(currentPace)}</span>`;
-
-    return `
-        <tr class="${isTotal ? 'q-total' : ''}">
-            <td class="text-left unit-name">${unit}</td>
-            <td class="goal-col">${fmt(target)}</td>
-            <td class="actual-col">${fmt(revenueRecognized)}</td>
-            ${remainingCell}
-            <td>${weeksLeft.toFixed(1)}</td>
-            <td class="actual-col">${weeklyTargetCell}</td>
-            <td class="goal-col">${currentPaceCell}</td>
-            ${changeCell}
-        </tr>`;
-}
-
-function renderWeeklyTargets() {
-    const selectedUnits = unitMS.getSelected();
-    const { weeksLeft, weeksElapsed } = weeksLeftAndElapsed();
-
-    let totTarget = 0, totRevenueRecognized = 0, totActualYTD = 0;
-    let rowsHtml = '';
-
-    rawData.forEach(item => {
-        if (!selectedUnits.includes(item.unit)) return;
-        const target = item.goals.reduce((a, b) => a + b, 0);
-        // Revenue Recognized mirrors the top scorecard: full-year sum of actuals
-        // (includes future months already booked/on-the-books, not just past stays).
-        const revenueRecognized = item.actuals.reduce((a, b) => a + (b || 0), 0);
-        const actualYTD = item.actuals.slice(0, CURRENT_MONTH).reduce((a, b) => a + (b || 0), 0);
-        totTarget += target;
-        totRevenueRecognized += revenueRecognized;
-        totActualYTD += actualYTD;
-        rowsHtml += weeklyTargetRow(item.unit, target, revenueRecognized, actualYTD, weeksLeft, weeksElapsed, false);
-    });
-
-    if (selectedUnits.length === rawData.length) {
-        rowsHtml += weeklyTargetRow('GCVR TOTAL', totTarget, totRevenueRecognized, totActualYTD, weeksLeft, weeksElapsed, true);
-    }
-
-    document.getElementById('weeklyTargetBody').innerHTML = rowsHtml;
-    attachCalcTooltips();
-}
-
-// ── Custom calc tooltip (escapes the table's overflow:hidden clipping) ────────
-const calcTooltip = document.createElement('div');
-calcTooltip.id = 'calcTooltip';
-document.body.appendChild(calcTooltip);
-
-function positionCalcTooltip(target) {
-    const rect = target.getBoundingClientRect();
-    const tipRect = calcTooltip.getBoundingClientRect();
-    let top = rect.top - tipRect.height - 8;
-    if (top < 8) top = rect.bottom + 8;
-    let left = rect.left + rect.width / 2 - tipRect.width / 2;
-    left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
-    calcTooltip.style.top = `${top}px`;
-    calcTooltip.style.left = `${left}px`;
-}
-
-function showCalcTooltip(e) {
-    const tip = e.currentTarget.getAttribute('data-tip');
-    if (!tip) return;
-    calcTooltip.textContent = tip;
-    calcTooltip.style.display = 'block';
-    positionCalcTooltip(e.currentTarget);
-}
-
-function hideCalcTooltip() {
-    calcTooltip.style.display = 'none';
-}
-
-function attachCalcTooltips() {
-    document.querySelectorAll('.calc-hint, .calc-hint-badge').forEach(el => {
-        el.addEventListener('mouseenter', showCalcTooltip);
-        el.addEventListener('mouseleave', hideCalcTooltip);
-    });
-}
-
-function renderAll() {
-    renderTable();
-    renderWeeklyTargets();
-}
-
-// ── Multi-select checkbox dropdowns ────────────────────────────────────────
-function toggleMsDropdown(dropdownId) {
-    document.querySelectorAll('.ms-dropdown').forEach(d => {
-        if (d.id !== dropdownId) {
-            d.querySelector('.ms-panel').classList.remove('open');
-            d.querySelector('.ms-toggle').classList.remove('open');
-        }
-    });
-    const dd = document.getElementById(dropdownId);
-    dd.querySelector('.ms-panel').classList.toggle('open');
-    dd.querySelector('.ms-toggle').classList.toggle('open');
-}
-
-document.addEventListener('click', (e) => {
-    document.querySelectorAll('.ms-dropdown').forEach(d => {
-        if (!d.contains(e.target)) {
-            d.querySelector('.ms-panel').classList.remove('open');
-            d.querySelector('.ms-toggle').classList.remove('open');
-        }
-    });
-});
-
-function setupMultiSelect(panelId, labelId, allLabel, onChange) {
-    const panel = document.getElementById(panelId);
-    const allCb = panel.querySelector('.ms-all-checkbox');
-    const itemCbs = () => Array.from(panel.querySelectorAll('input[type="checkbox"]:not(.ms-all-checkbox)'));
-    const label = document.getElementById(labelId);
-
-    function updateLabel() {
-        const items = itemCbs();
-        const checked = items.filter(cb => cb.checked);
-        if (checked.length === 0) label.textContent = 'None selected';
-        else if (checked.length === items.length) label.textContent = allLabel;
-        else if (checked.length <= 2) label.textContent = checked.map(cb => cb.value).join(', ');
-        else label.textContent = `${checked.length} selected`;
-    }
-
-    function syncAll() {
-        const items = itemCbs();
-        const checkedCount = items.filter(cb => cb.checked).length;
-        allCb.checked = checkedCount === items.length;
-        allCb.indeterminate = checkedCount > 0 && checkedCount < items.length;
-        updateLabel();
-    }
-
-    allCb.addEventListener('change', () => {
-        itemCbs().forEach(cb => { cb.checked = allCb.checked; });
-        allCb.indeterminate = false;
-        updateLabel();
-        onChange();
-    });
-
-    itemCbs().forEach(cb => cb.addEventListener('change', () => { syncAll(); onChange(); }));
-
-    updateLabel();
-
-    return { getSelected: () => itemCbs().filter(cb => cb.checked).map(cb => cb.value) };
-}
-
-const unitMS  = setupMultiSelect('unitFilterPanel', 'unitFilterLabel', 'All Units', renderAll);
-const monthMS = setupMultiSelect('monthFilterPanel', 'monthFilterLabel', 'Full Year', renderTable);
-const showMS  = setupMultiSelect('showFilterPanel', 'showFilterLabel', 'All Months', renderTable);
-
-renderAll();
+renderTable();
 
 function exportCSV() {
-    const selectedUnits    = unitMS.getSelected();
-    const selectedMonths   = monthMS.getSelected();
-    const selectedStatuses = showMS.getSelected();
+    const monthFilter = document.getElementById('monthFilter').value;
+    const unitFilter  = document.getElementById('unitFilter').value;
+    const showFilter  = document.getElementById('showFilter').value;
 
-    const rows = [['Unit / Portfolio', 'Month', 'Budget Goal ($)', 'Revenue Recognized ($)', 'Variance ($)', 'Variance (%)', 'Last Year (Pace) ($)', 'YoY (%)']];
+    const rows = [['Unit / Portfolio', 'Month', 'Budget Goal ($)', 'Revenue Recognized ($)', 'Variance ($)', 'Variance (%)']];
 
     rawData.forEach(item => {
-        if (!selectedUnits.includes(item.unit)) return;
+        if (unitFilter !== 'All' && unitFilter !== item.unit) return;
         item.goals.forEach((goal, i) => {
             const mName  = months[i];
             const status = monthStatus(i);
             const actual = item.actuals[i];
-            const lastYear = item.lastYear ? item.lastYear[i] : null;
-            if (!selectedMonths.includes(mName)) return;
-            if (!selectedStatuses.includes(status)) return;
-            const hasActual   = actual !== null;
-            const hasLastYear = lastYear !== null && lastYear !== undefined;
+            if (monthFilter !== 'All' && monthFilter !== mName) return;
+            if (showFilter === 'actual' && status !== 'actual') return;
+            if (showFilter === 'future' && status === 'actual') return;
+            const hasActual = actual !== null;
             const variance  = hasActual ? (actual - goal).toFixed(2) : '';
             const varPct    = hasActual ? ((actual - goal) / goal * 100).toFixed(1) + '%' : '';
-            const yoyPct    = (hasActual && hasLastYear && lastYear) ? ((actual - lastYear) / lastYear * 100).toFixed(1) + '%' : '';
-            rows.push([item.unit, mName, goal.toFixed(2), hasActual ? actual.toFixed(2) : '', variance, varPct, hasLastYear ? lastYear.toFixed(2) : '', yoyPct]);
+            rows.push([item.unit, mName, goal.toFixed(2), hasActual ? actual.toFixed(2) : '', variance, varPct]);
         });
     });
 
