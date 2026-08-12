@@ -89,11 +89,18 @@ BUDGET_2026 = {
         110160.00, 205632.00, 242208.00, 108000.00,
          72000.00, 126000.00, 126000.00, 162000.00,
     ],
-    # Non-Resort is rent/non-STR revenue — not in KeyData, shown as budget-only
+    # Non-Resort is rent/non-STR revenue — not in KeyData, shown as budget-only.
+    # Island Vacations was split out of this total on 2026-07-22; both budgets
+    # below add up to the original combined figures shown above.
     "Non-Resort": [
-        619146.40, 961272.00, 979237.60, 468624.80,
-        157331.20, 185928.80, 187572.80,  86636.00,
-         60847.20,  85866.40, 107206.40, 218600.80,
+        524888.00, 832949.60, 842852.00, 384922.40,
+        112901.60, 139356.00, 150667.20,  73780.00,
+         47932.80,  61226.40,  83686.40, 185719.20,
+    ],
+    "Island Vacations": [
+         94258.40, 128322.40, 136385.60,  83702.40,
+         44429.60,  46572.80,  36905.60,  12856.00,
+         12914.40,  24640.00,  23520.00,  32881.60,
     ],
 }
 
@@ -108,6 +115,7 @@ KEYDATA_PROPERTIES = [
     {"name": "Colony Inn",  "group": [48143]},
     {"name": "YCA",         "group": [50606]},
     {"name": "Non-Resort",  "group": [51378, 51379]},
+    {"name": "Island Vacations", "group": [42599]},
 ]
 
 # ── Token ──────────────────────────────────────────────────────────────────────
@@ -252,7 +260,7 @@ def var(actual, budget):
         return None
     return actual - budget
 
-PROPERTY_ORDER = ["Sandalfoot", "Signal Inn", "GBB", "YCA", "Colony Inn", "Non-Resort"]
+PROPERTY_ORDER = ["Sandalfoot", "Signal Inn", "GBB", "YCA", "Colony Inn", "Non-Resort", "Island Vacations"]
 
 print(f"\n{'='*60}")
 print(f"  YTD SUMMARY (Jan – {MONTHS[CURRENT_MONTH-1]} 2026)")
@@ -502,6 +510,7 @@ PROP_JS_NAMES = {
     "Colony Inn":  "Colony Inn",
     "YCA":         "YCA",
     "Non-Resort":  "Non-Resort Portfolio",
+    "Island Vacations": "Island Vacations",
 }
 
 def js_arr(vals):

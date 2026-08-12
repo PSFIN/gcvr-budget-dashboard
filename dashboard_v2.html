@@ -595,6 +595,7 @@
                         <label class="ms-option ms-all"><input type="checkbox" class="ms-all-checkbox" checked> All Units</label>
                         <div class="ms-divider"></div>
                         <label class="ms-option"><input type="checkbox" value="Non-Resort Portfolio" checked> Non-Resort Portfolio</label>
+                        <label class="ms-option"><input type="checkbox" value="Island Vacations" checked> Island Vacations</label>
                         <label class="ms-option"><input type="checkbox" value="Sandalfoot" checked> Sandalfoot</label>
                         <label class="ms-option"><input type="checkbox" value="Signal Inn" checked> Signal Inn</label>
                         <label class="ms-option"><input type="checkbox" value="GBB" checked> GBB</label>
@@ -712,9 +713,16 @@ const AS_OF_DATE = "2026-08-10";   // ISO date used for weeks-left math below
 const rawData = [
     {
         unit: "Non-Resort Portfolio",
-        goals:   [619146.40, 961272.00, 979237.60, 468624.80, 157331.20, 185928.80, 187572.80, 86636.00, 60847.20, 85866.40, 107206.40, 218600.80],
+        goals:   [524888.00, 832949.60, 842852.00, 384922.40, 112901.60, 139356.00, 150667.20, 73780.00, 47932.80, 61226.40, 83686.40, 185719.20],
         actuals: [697536.71, 838631.78, 580578.03, 276311.19, 235719.98, 260419.97, 260689.12, 126271.33, 59380.62, 124052.42, 146369.48, 379800.01],
         lastYear: [601575.59, 789042.17, 510847.24, 308768.5, 223350.73, 264867.09, 238425.32, 81291.75, 40460.62, 103977.73, 82955.46, 161600.0],
+        source: "keydata"
+    },
+    {
+        unit: "Island Vacations",
+        goals:   [94258.40, 128322.40, 136385.60, 83702.40, 44429.60, 46572.80, 36905.60, 12856.00, 12914.40, 24640.00, 23520.00, 32881.60],
+        actuals: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        lastYear: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         source: "keydata"
     },
     {
