@@ -7,7 +7,7 @@ reservation data, plus a weekly summary posted to Teams.
 | | |
 |---|---|
 | **Dashboard** | https://budget.choosegulfcoast.com/ (password, user `gulfcoast`) |
-| Old link | https://psfin.github.io/gcvr-budget-dashboard/ (redirects to the dashboard) |
+| Previous GitHub link | https://psfin.github.io/gcvr-budget-dashboard/ (redirects to the dashboard) |
 | Code | https://github.com/PSFIN/gcvr-budget-dashboard (public, code only) |
 | Server | AWS Lightsail `gulfcoast-tools`, IP `54.243.31.14`, Caddy web server |
 | Page refresh | every day at **8:00 AM Eastern**, automatic |
@@ -15,16 +15,16 @@ reservation data, plus a weekly summary posted to Teams.
 
 ## What is running and what is working
 
-Last checked 2026-10-15.
+Last checked 2026-10-16.
 
 | Piece | What it does | Status |
 |---|---|---|
 | Streamline sync | The pacing project (`~/gulf-coast-pacing`) keeps `pacing.db` current with Streamline reservations | Working. The page header shows "Data as of" (the last sync time) |
-| Daily refresh | `budget-update.timer` runs `deploy/update.sh` every day at 8:00 AM Eastern | Working |
+| Daily refresh | `budget-update.timer` runs `deploy/update.sh` every day at 8:00 AM Eastern | Working. The page was rebuilt on the morning of 2026-10-16 |
 | Web server | Caddy serves `/var/www/budget/index.html` over HTTPS behind a login | Working. Certificate renews itself |
 | Private budgets | `budgets_2026.json` holds the monthly targets, on the server and the Mac only | In place. Never in Git |
-| Teams summary | Posts a written summary with the change since last week | Working. Posts to a private channel |
-| Old GitHub link | `index.html` in this repo is a redirect page | Working |
+| Teams summary | Posts a written summary with the change since last week | Working. First post confirmed 2026-10-15, to a private channel |
+| GitHub link redirect | `index.html` in this repo is a redirect page | Working |
 | This repo | Code only: no budget or revenue figures in the files or history | Clean |
 
 ## How it works
@@ -38,9 +38,15 @@ Every morning at 8:00 AM Eastern the server runs `deploy/update.sh`, which:
 4. saves a private snapshot of the day's numbers and, on Mondays, posts the Teams summary.
 
 The script reads three local data files (`pacing.db`, `custom_groups.json`, the private
-`budgets_2026.json`) and makes no Streamline calls. The only outside call is the Teams post. If the
-data is more than 48 hours old the script prints a warning, and the page header always shows when
-Streamline last synced.
+`budgets_2026.json`) and makes no Streamline calls. The only outside call is the Teams post.
+
+### What "Data as of" means
+
+The time in the page header is when **Streamline last synced**, not when the page was built. The
+pacing project syncs with Streamline about every 3 hours (observed at :27 past the hour, for example
+6:27, 9:27 and 12:27). The 8:00 AM refresh uses the newest sync available at that moment, so the
+header normally reads about 6:27 AM. If the time is more than 48 hours old, the script prints a
+warning: the sync, not this job, is stuck.
 
 ## How the numbers are calculated
 
@@ -193,6 +199,7 @@ Without `--dry-run` it writes `dashboard.preview.html` (git-ignored). It never w
 | `deploy/update.sh` | The daily job: pull code, rebuild, publish, notify |
 | `deploy/budget-update.service`, `deploy/budget-update.timer` | systemd job and its 8:00 AM Eastern schedule |
 | `deploy/Caddyfile.snippet` | The Caddy site block (the password hash is filled in on the server) |
+| `deploy/SETUP.md` | Step-by-step rebuild of the server setup (only needed on a new or reset server) |
 | `index.html` | Redirect from the old GitHub link to the dashboard |
 
 ## Security
@@ -203,108 +210,3 @@ Without `--dry-run` it writes `dashboard.preview.html` (git-ignored). It never w
 - The password protects https://budget.choosegulfcoast.com/, the only place the full numbers appear.
   The Teams summary shows the same figures to everyone in its channel, so keep that channel private.
 - The Streamline token lives only on the server in the pacing project and must never be copied into this repo.
-
-<details>
-<summary><b>Setting up from scratch</b> (already done; kept for rebuilding the server)</summary>
-
-Run each command in the Lightsail browser SSH terminal, one at a time. The DNS A record
-`budget.choosegulfcoast.com` -> `54.243.31.14` must already exist. Nothing here edits an existing
-Caddy site block.
-
-**1. Check Caddy is healthy:**
-
-```bash
-caddy version && sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-```
-
-**2. Check nothing for "budget" exists yet** (no output is good):
-
-```bash
-grep -n "budget" /etc/caddy/Caddyfile /etc/caddy/Caddyfile.pending
-```
-
-**3. Check the Streamline data files exist and create the web folder:**
-
-```bash
-ls -l /home/ubuntu/gulf-coast-pacing/pacing.db /home/ubuntu/gulf-coast-pacing/custom_groups.json && sudo mkdir -p /var/www/budget && sudo chown ubuntu:ubuntu /var/www/budget
-```
-
-**4. Clone this repo** (public, so no key is needed):
-
-```bash
-git clone https://github.com/PSFIN/gcvr-budget-dashboard.git /home/ubuntu/budget-dashboard
-```
-
-**5. Create the private budgets folder**, then create `budgets_2026.json` in it. Paste the JSON from
-the Mac copy with a `cat > /home/ubuntu/budget-data/budgets_2026.json <<'EOF' ... EOF` command, then
-`chmod 600` the file:
-
-```bash
-mkdir -p /home/ubuntu/budget-data && chmod 700 /home/ubuntu/budget-data
-```
-
-**6. Build the first page:**
-
-```bash
-chmod +x /home/ubuntu/budget-dashboard/deploy/update.sh && /home/ubuntu/budget-dashboard/deploy/update.sh
-```
-
-**7. Choose the website password** (typed twice; the hash goes to a private file):
-
-```bash
-caddy hash-password > /home/ubuntu/.budget-auth-hash && chmod 600 /home/ubuntu/.budget-auth-hash
-```
-
-**8. Back up both Caddyfiles:**
-
-```bash
-sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak-budget && sudo cp /etc/caddy/Caddyfile.pending /etc/caddy/Caddyfile.pending.bak-budget
-```
-
-**9. Add the site block to the bottom of both Caddyfiles:**
-
-```bash
-sed "s|REPLACE_WITH_BCRYPT_HASH|$(cat /home/ubuntu/.budget-auth-hash)|" /home/ubuntu/budget-dashboard/deploy/Caddyfile.snippet | sudo tee -a /etc/caddy/Caddyfile /etc/caddy/Caddyfile.pending > /dev/null
-```
-
-**10. Validate** (must say "Valid configuration"), then reload:
-
-```bash
-sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && sudo systemctl reload caddy
-```
-
-**11. Install the daily 8:00 AM Eastern job:**
-
-```bash
-sudo cp /home/ubuntu/budget-dashboard/deploy/budget-update.service /home/ubuntu/budget-dashboard/deploy/budget-update.timer /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now budget-update.timer
-```
-
-**12. Check the schedule and test the job once:**
-
-```bash
-systemctl list-timers budget-update.timer --no-pager && sudo systemctl start budget-update.service && journalctl -u budget-update.service -n 25 --no-pager
-```
-
-**13. Test the website.** Expect `401` (login required), then log in from a browser:
-
-```bash
-curl -sI https://budget.choosegulfcoast.com/ | head -n 3
-```
-
-**14. Delete the saved hash file:**
-
-```bash
-rm /home/ubuntu/.budget-auth-hash
-```
-
-If anything fails after step 9, restore the backups, then validate and reload Caddy:
-
-```bash
-sudo cp /etc/caddy/Caddyfile.bak-budget /etc/caddy/Caddyfile && sudo cp /etc/caddy/Caddyfile.pending.bak-budget /etc/caddy/Caddyfile.pending && sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && sudo systemctl reload caddy
-```
-
-To remove the site: delete the `budget.choosegulfcoast.com` block from both Caddyfiles, validate and
-reload Caddy, then `sudo systemctl disable --now budget-update.timer` and delete
-`/etc/systemd/system/budget-update.service` and `budget-update.timer`.
-
-</details>
