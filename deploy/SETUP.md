@@ -45,55 +45,43 @@ mkdir -p /home/ubuntu/budget-data && chmod 700 /home/ubuntu/budget-data
 chmod +x /home/ubuntu/budget-dashboard/deploy/update.sh && /home/ubuntu/budget-dashboard/deploy/update.sh
 ```
 
-**7. Choose the website password** (typed twice; the hash goes to a private file):
-
-```bash
-caddy hash-password > /home/ubuntu/.budget-auth-hash && chmod 600 /home/ubuntu/.budget-auth-hash
-```
-
-**8. Back up both Caddyfiles:**
+**7. Back up both Caddyfiles:**
 
 ```bash
 sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak-budget && sudo cp /etc/caddy/Caddyfile.pending /etc/caddy/Caddyfile.pending.bak-budget
 ```
 
-**9. Add the site block to the bottom of both Caddyfiles:**
+**8. Add the site block to the bottom of both Caddyfiles:**
 
 ```bash
-sed "s|REPLACE_WITH_BCRYPT_HASH|$(cat /home/ubuntu/.budget-auth-hash)|" /home/ubuntu/budget-dashboard/deploy/Caddyfile.snippet | sudo tee -a /etc/caddy/Caddyfile /etc/caddy/Caddyfile.pending > /dev/null
+sudo tee -a /etc/caddy/Caddyfile /etc/caddy/Caddyfile.pending < /home/ubuntu/budget-dashboard/deploy/Caddyfile.snippet > /dev/null
 ```
 
-**10. Validate** (must say "Valid configuration"), then reload:
+**9. Validate** (must say "Valid configuration"), then reload:
 
 ```bash
 sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && sudo systemctl reload caddy
 ```
 
-**11. Install the daily 8:00 AM Eastern job:**
+**10. Install the daily 8:00 AM Eastern job:**
 
 ```bash
 sudo cp /home/ubuntu/budget-dashboard/deploy/budget-update.service /home/ubuntu/budget-dashboard/deploy/budget-update.timer /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now budget-update.timer
 ```
 
-**12. Check the schedule and test the job once:**
+**11. Check the schedule and test the job once:**
 
 ```bash
 systemctl list-timers budget-update.timer --no-pager && sudo systemctl start budget-update.service && journalctl -u budget-update.service -n 25 --no-pager
 ```
 
-**13. Test the website.** Expect `401` (login required), then log in from a browser:
+**12. Test the website.** Expect `200`, then open it in a browser:
 
 ```bash
 curl -sI https://budget.choosegulfcoast.com/ | head -n 3
 ```
 
-**14. Delete the saved hash file:**
-
-```bash
-rm /home/ubuntu/.budget-auth-hash
-```
-
-If anything fails after step 9, restore the backups, then validate and reload Caddy:
+If anything fails after step 8, restore the backups, then validate and reload Caddy:
 
 ```bash
 sudo cp /etc/caddy/Caddyfile.bak-budget /etc/caddy/Caddyfile && sudo cp /etc/caddy/Caddyfile.pending.bak-budget /etc/caddy/Caddyfile.pending && sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && sudo systemctl reload caddy

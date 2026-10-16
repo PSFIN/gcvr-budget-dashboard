@@ -6,7 +6,7 @@ reservation data, plus a weekly summary posted to Teams.
 
 | | |
 |---|---|
-| **Dashboard** | https://budget.choosegulfcoast.com/ (password, user `gulfcoast`) |
+| **Dashboard** | https://budget.choosegulfcoast.com/ (no login: open to anyone with the address) |
 | Previous GitHub link | https://psfin.github.io/gcvr-budget-dashboard/ (redirects to the dashboard) |
 | Code | https://github.com/PSFIN/gcvr-budget-dashboard (public, code only) |
 | Server | AWS Lightsail `gulfcoast-tools`, IP `54.243.31.14`, Caddy web server |
@@ -21,7 +21,7 @@ Last checked 2026-10-16.
 |---|---|---|
 | Streamline sync | The pacing project (`~/gulf-coast-pacing`) keeps `pacing.db` current with Streamline reservations | Working. The page header shows "Data as of" (the last sync time) and "Page updated" (the build time) |
 | Daily refresh | `budget-update.timer` runs `deploy/update.sh` every day at 8:00 AM Eastern | Working. The page was rebuilt on the morning of 2026-10-16 |
-| Web server | Caddy serves `/var/www/budget/index.html` over HTTPS behind a login | Working. Certificate renews itself |
+| Web server | Caddy serves `/var/www/budget/index.html` over HTTPS, no login | Working. Certificate renews itself |
 | Private budgets | `budgets_2026.json` holds the monthly targets, on the server and the Mac only | In place. Never in Git |
 | Teams summary | Posts a written summary with the change since last week | Working. First post confirmed 2026-10-15, to a private channel |
 | GitHub link redirect | `index.html` in this repo is a redirect page | Working |
@@ -156,12 +156,7 @@ systemctl list-timers budget-update.timer --no-pager; journalctl -u budget-updat
 nano /home/ubuntu/budget-data/budgets_2026.json
 ```
 
-**Change the password:** run `caddy hash-password`, replace the hash after `gulfcoast` in the
-`budget.choosegulfcoast.com` block in both `/etc/caddy/Caddyfile` and `/etc/caddy/Caddyfile.pending`,
-then validate and reload Caddy (below). Never commit a hash.
-
-**Validate and reload Caddy** (always validate first; other apps share this Caddy, which is an older
-version, so the directive is `basicauth`, not `basic_auth`):
+**Validate and reload Caddy** (always validate first; other apps share this Caddy):
 
 ```bash
 sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile && sudo systemctl reload caddy
@@ -191,7 +186,6 @@ Without `--dry-run` it writes `dashboard.preview.html` (git-ignored). It never w
 | "Could not find budgets_2026.json" | Create it in `/home/ubuntu/budget-data/` (see Private files). The page keeps the last good version meanwhile |
 | "Could not find pacing.db" | The pacing project folder moved. Set `PACING_DIR` in `deploy/update.sh` |
 | Certificate error | DNS for `budget.choosegulfcoast.com` must point at `54.243.31.14`. Wait a minute and retry |
-| Wrong login | Change the password (see above) |
 
 ## Files in this repo
 
@@ -201,15 +195,18 @@ Without `--dry-run` it writes `dashboard.preview.html` (git-ignored). It never w
 | `dashboard_template.html` | Empty page template (no figures) |
 | `deploy/update.sh` | The daily job: pull code, rebuild, publish, notify |
 | `deploy/budget-update.service`, `deploy/budget-update.timer` | systemd job and its 8:00 AM Eastern schedule |
-| `deploy/Caddyfile.snippet` | The Caddy site block (the password hash is filled in on the server) |
+| `deploy/Caddyfile.snippet` | The Caddy site block |
 | `deploy/SETUP.md` | Step-by-step rebuild of the server setup (only needed on a new or reset server) |
 | `index.html` | Redirect from the old GitHub link to the dashboard |
 
 ## Security
 
+- The dashboard has **no login**: anyone who has the address can view the figures. It asks search
+  engines not to list it (`noindex`), which is not access control, so do not share the address outside
+  the company. To add a login again, add a Caddy `basicauth` directive to the site block (never commit a
+  password hash: this repo is public).
+- The Teams summary shows the same figures to everyone in its channel, so keep that channel private.
 - This repo is public and holds code only. Budget targets stay in the private `budgets_2026.json`;
   revenue is read from Streamline on the server. Never commit `budgets_2026.json`, a webhook address
   or a generated dashboard (`.gitignore` blocks them).
-- The password protects https://budget.choosegulfcoast.com/, the only place the full numbers appear.
-  The Teams summary shows the same figures to everyone in its channel, so keep that channel private.
 - The Streamline token lives only on the server in the pacing project and must never be copied into this repo.
