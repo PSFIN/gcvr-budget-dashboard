@@ -1,0 +1,10 @@
+[Unit]
+Description=Rebuild the budget dashboard from Streamline data and publish to /var/www/budget
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+TimeoutStartSec=300
+ExecStart=/home/ubuntu/budget-dashboard/deploy/update.sh

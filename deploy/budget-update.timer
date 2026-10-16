@@ -1,0 +1,14 @@
+[Unit]
+Description=Refresh the budget dashboard every day at 8:00 AM Eastern
+
+[Timer]
+# Eastern time is stated explicitly, so it keeps working through the daylight
+# saving change and even if the server clock were ever switched to UTC.
+# Persistent=true runs a missed job at the next boot.
+# For Mondays only, use:  OnCalendar=Mon *-*-* 08:00:00 America/New_York
+OnCalendar=*-*-* 08:00:00 America/New_York
+Persistent=true
+Unit=budget-update.service
+
+[Install]
+WantedBy=timers.target

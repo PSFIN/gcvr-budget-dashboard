@@ -1,0 +1,16 @@
+
+# budget.choosegulfcoast.com — static dashboard behind a shared password.
+# Append to the BOTTOM of /etc/caddy/Caddyfile and /etc/caddy/Caddyfile.pending.
+# Never edit the other site blocks. This Caddy is an older version: the
+# directive is "basicauth" (not "basic_auth").
+# The hash placeholder below is replaced on the server with the output of
+# "caddy hash-password" (never commit a real hash; this repo is public).
+budget.choosegulfcoast.com {
+	root * /var/www/budget
+	encode gzip
+	basicauth {
+		gulfcoast REPLACE_WITH_BCRYPT_HASH
+	}
+	header Cache-Control "no-cache"
+	file_server
+}

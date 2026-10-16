@@ -1,0 +1,8 @@
+# Private inputs and generated output. Never commit these: this repo is public.
+*.json
+history/
+teams_webhook.url
+dashboard.preview.html
+
+# macOS
+.DS_Store
