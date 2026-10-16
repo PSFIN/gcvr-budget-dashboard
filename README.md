@@ -19,7 +19,7 @@ Last checked 2026-10-16.
 
 | Piece | What it does | Status |
 |---|---|---|
-| Streamline sync | The pacing project (`~/gulf-coast-pacing`) keeps `pacing.db` current with Streamline reservations | Working. The page header shows "Data as of" (the last sync time) |
+| Streamline sync | The pacing project (`~/gulf-coast-pacing`) keeps `pacing.db` current with Streamline reservations | Working. The page header shows "Data as of" (the last sync time) and "Page updated" (the build time) |
 | Daily refresh | `budget-update.timer` runs `deploy/update.sh` every day at 8:00 AM Eastern | Working. The page was rebuilt on the morning of 2026-10-16 |
 | Web server | Caddy serves `/var/www/budget/index.html` over HTTPS behind a login | Working. Certificate renews itself |
 | Private budgets | `budgets_2026.json` holds the monthly targets, on the server and the Mac only | In place. Never in Git |
@@ -40,13 +40,16 @@ Every morning at 8:00 AM Eastern the server runs `deploy/update.sh`, which:
 The script reads three local data files (`pacing.db`, `custom_groups.json`, the private
 `budgets_2026.json`) and makes no Streamline calls. The only outside call is the Teams post.
 
-### What "Data as of" means
+### The two times in the page header
 
-The time in the page header is when **Streamline last synced**, not when the page was built. The
-pacing project syncs with Streamline about every 3 hours (observed at :27 past the hour, for example
-6:27, 9:27 and 12:27). The 8:00 AM refresh uses the newest sync available at that moment, so the
-header normally reads about 6:27 AM. If the time is more than 48 hours old, the script prints a
-warning: the sync, not this job, is stuck.
+The header shows both: **Data as of** and **Page updated**.
+
+- **Page updated** is when the page was built (normally 8:00 AM Eastern).
+- **Data as of** is when Streamline last synced. The pacing project syncs about every 3 hours
+  (observed at :27 past the hour, for example 6:27, 9:27 and 12:27), and the 8:00 AM build uses the
+  newest sync available at that moment, so this normally reads about 6:27 AM.
+
+If "Data as of" is more than 48 hours old, the script prints a warning: the sync, not this job, is stuck.
 
 ## How the numbers are calculated
 
@@ -182,7 +185,7 @@ Without `--dry-run` it writes `dashboard.preview.html` (git-ignored). It never w
 
 | Symptom | What to check |
 |---|---|
-| Numbers look old | The "Data as of" time in the page header. If it is old, Streamline's sync (the pacing project) is behind, not this job |
+| Numbers look old | Compare the two times in the page header. If "Page updated" is recent but "Data as of" is old, Streamline's sync (the pacing project) is behind, not this job. If "Page updated" is old, the job did not run |
 | It did not update this morning | `journalctl -u budget-update.service -n 30 --no-pager`, then run `update.sh` by hand |
 | Teams message did not arrive | Look for "Teams:" in `journalctl -u budget-update.service -n 40 --no-pager`. "no webhook configured" means the webhook file is missing; "HTTP 4xx" means the workflow was deleted or the address is wrong (create a new one and save it again) |
 | "Could not find budgets_2026.json" | Create it in `/home/ubuntu/budget-data/` (see Private files). The page keeps the last good version meanwhile |

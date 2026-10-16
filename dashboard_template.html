@@ -529,7 +529,7 @@
         <div class="header-title">
             <span class="brand-eyebrow"><span class="live-pulse"></span> GCVR Portfolio Analytics</span>
             <h1>Performance Dashboard</h1>
-            <p class="subtitle">Budget Goals vs. Revenue Recognized &nbsp;·&nbsp; Data as of <span id="asOfDate"></span></p>
+            <p class="subtitle">Budget Goals vs. Revenue Recognized &nbsp;·&nbsp; Data as of <span id="asOfDate"></span><span class="page-updated-wrap"> &nbsp;·&nbsp; Page updated <span class="page-updated"></span></span></p>
         </div>
         <div class="controls">
             <div class="filter-group">
@@ -624,7 +624,7 @@
         <span><span class="dot dot-actual"></span>Confirmed actuals from Streamline</span>
         <span><span class="dot dot-cur"></span>Current month (in progress)</span>
     </div>
-    <p class="refresh-note">Data as of <span id="refreshDate"></span> &nbsp;·&nbsp; Source: Streamline &nbsp;·&nbsp; Updated automatically every morning<br>Revenue is recognized in the month of check-in &nbsp;·&nbsp; Non-Resort excludes Island Vacations</p>
+    <p class="refresh-note">Data as of <span id="refreshDate"></span><span class="page-updated-wrap"> &nbsp;·&nbsp; Page updated <span class="page-updated"></span></span> &nbsp;·&nbsp; Source: Streamline &nbsp;·&nbsp; Updated automatically every morning<br>Revenue is recognized in the month of check-in &nbsp;·&nbsp; Non-Resort excludes Island Vacations</p>
 
     <div class="table-container" style="margin-top:24px;">
         <div class="section-heading">
@@ -655,7 +655,8 @@
 <script>
 // ── Data: filled in by build_dashboard.py from Streamline (targets come from the private budgets file) ──
 const CURRENT_MONTH = 10;
-const GENERATED = "10/8/2026 2:41 PM";
+const GENERATED = "10/8/2026 2:41 PM";      // when Streamline last synced
+const PAGE_UPDATED = "";                      // when this page was built (filled in by build_dashboard.py)
 const AS_OF_DATE = "2026-10-15";   // ISO date used for weeks-left math below
 
 const rawData = [
@@ -707,6 +708,8 @@ const months = ["January","February","March","April","May","June","July","August
 
 document.getElementById('asOfDate').textContent = GENERATED;
 document.getElementById('refreshDate').textContent = GENERATED;
+document.querySelectorAll('.page-updated').forEach(el => { el.textContent = PAGE_UPDATED; });
+document.querySelectorAll('.page-updated-wrap').forEach(el => { el.hidden = !PAGE_UPDATED; });
 
 function fmt(n) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);

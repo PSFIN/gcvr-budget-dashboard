@@ -174,7 +174,7 @@ def js_name(prop):
     return JS_NAMES.get(prop, prop)
 
 
-def patch_dashboard(html, budgets, current, last_year, today, generated):
+def patch_dashboard(html, budgets, current, last_year, today, generated, updated):
     for prop in PROPERTY_ORDER:
         for key, vals in (("goals", budgets[prop]), ("actuals", current[prop]), ("lastYear", last_year[prop])):
             pattern = re.compile(r'(unit:\s*"' + re.escape(js_name(prop)) + r'".*?' + key + r':\s*)\[[^\]]*\]', re.S)
@@ -183,6 +183,7 @@ def patch_dashboard(html, budgets, current, last_year, today, generated):
                 sys.exit(f'Template has no "{key}" array for unit "{js_name(prop)}" — nothing written.')
     for pattern, replacement in (
             (r'const GENERATED\s*=\s*"[^"]*"', f'const GENERATED = "{generated}"'),
+            (r'const PAGE_UPDATED\s*=\s*"[^"]*"', f'const PAGE_UPDATED = "{updated}"'),
             (r'const CURRENT_MONTH\s*=\s*\d+', f'const CURRENT_MONTH = {today.month}'),
             (r'const AS_OF_DATE\s*=\s*"[^"]*"', f'const AS_OF_DATE = "{today.isoformat()}"')):
         html, n = re.subn(pattern, replacement, html)
@@ -460,8 +461,10 @@ def main():
     last_year = monthly_revenue(bookings, units, today.year - 1, ly_asof)
 
     html = open(args.template).read()
-    generated = (last_sync or datetime.now()).strftime("%-m/%-d/%Y %-I:%M %p")
-    html = patch_dashboard(html, budgets, current, last_year, today, generated)
+    stamp = "%-m/%-d/%Y %-I:%M %p"
+    generated = (last_sync or datetime.now()).strftime(stamp)       # when Streamline last synced
+    updated = datetime.now().strftime(stamp)                          # when this page is built
+    html = patch_dashboard(html, budgets, current, last_year, today, generated, updated)
 
     print_summary(budgets, current, today)
 
