@@ -521,9 +521,72 @@
             text-align: right;
             margin-top: 20px;
         }
+
+        /* ── Motion (no colour or layout changes; everything is off for reduced-motion devices) ── */
+        @keyframes rise-in {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: none; }
+        }
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @keyframes pop-in {
+            from { opacity: 0; transform: scale(0.9) translateY(-4px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        /* Page open: header, cards and sections slide up and fade in one after another (60ms apart).
+           "backwards" fill keeps the cards' hover lift working once the animation has finished. */
+        .container > header,
+        .container > .table-container,
+        .container > .legend,
+        .container > .refresh-note,
+        .card.enter {
+            animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+            animation-delay: calc(var(--i, 0) * 60ms);
+        }
+        .container > .table-container { --i: 6; }
+        .container > .legend          { --i: 7; }
+        .container > .refresh-note    { --i: 8; }
+        .container > .table-container ~ .table-container { --i: 9; }
+
+        /* Table rows fade in top to bottom (delay capped so long tables stay quick) */
+        tbody tr {
+            animation: fade-in 0.4s ease-out backwards;
+            animation-delay: calc(min(var(--r, 0), 20) * 30ms);
+        }
+
+        /* Filter pop-ups zoom in with a slight bounce over a softly blurred page */
+        .ms-panel.open {
+            transform-origin: top left;
+            animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+        }
+        .ms-dropdown.is-open { z-index: 31; }
+        #msBackdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            pointer-events: none;
+            opacity: 0;
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+            transition: opacity 0.25s ease;
+        }
+        #msBackdrop.show { opacity: 1; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+            .card:hover, .export-btn:hover { transform: none; }
+            #msBackdrop { display: none; }
+        }
     </style>
 </head>
 <body>
+<div id="msBackdrop" aria-hidden="true"></div>
 <div class="container">
     <header>
         <div class="header-title">
@@ -715,6 +778,50 @@ function fmt(n) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
 
+// ── CountUp: a number counts up from 0 when it first appears and glides to its new value when it changes ──
+// The caller passes the same formatter the page already uses, so the number format and currency symbol
+// never change. Under reduced motion the final text is written straight away.
+const CountUp = (() => {
+    const lastValue = new Map();   // key -> last value shown, so a re-render glides from it instead of from 0
+    const running   = new Map();   // key -> { raf, timer } of the animation in flight
+    const reduced   = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ease      = t => 1 - Math.pow(1 - t, 3);
+
+    function stop(key) {
+        const r = running.get(key);
+        if (r) { cancelAnimationFrame(r.raf); clearTimeout(r.timer); running.delete(key); }
+    }
+
+    function run(el, key, to, format, opts = {}) {
+        stop(key);
+        if (to === null || to === undefined || !isFinite(to)) {   // nothing to count (shows "—")
+            lastValue.delete(key);
+            return;
+        }
+        const from = lastValue.has(key) ? lastValue.get(key) : 0;
+        lastValue.set(key, to);
+        if (reduced() || from === to) { el.textContent = format(to); return; }
+
+        const duration = opts.duration || 800, delay = opts.delay || 0;
+        const state = {};
+        running.set(key, state);
+        el.textContent = format(from);
+        const finish = () => { running.delete(key); el.textContent = format(to); };
+        state.timer = setTimeout(finish, delay + duration + 150);   // safety net for background tabs
+        const begin = performance.now() + delay;
+        const tick = now => {
+            const t = Math.min(Math.max((now - begin) / duration, 0), 1);
+            if (t >= 1) { clearTimeout(state.timer); finish(); return; }
+            el.textContent = format(from + (to - from) * ease(t));
+            state.raf = requestAnimationFrame(tick);
+        };
+        state.raf = requestAnimationFrame(tick);
+    }
+    return { run };
+})();
+
+let firstPaint = true;   // the slide-up entrance plays only when the page opens, not on every filter change
+
 function monthStatus(idx) {
     const m = idx + 1;
     if (m < CURRENT_MONTH)  return 'actual';
@@ -730,6 +837,7 @@ function renderTable() {
     tbody.innerHTML = '';
 
     let totGoal = 0, totActual = 0, totRows = 0, totLastYear = 0, totLYRows = 0;
+    let rowIdx = 0;   // drives the top-to-bottom row fade
 
     const quarters = ['Q1 (Jan–Mar)', 'Q2 (Apr–Jun)', 'Q3 (Jul–Sep)', 'Q4 (Oct–Dec)'];
     const showQTotals = selectedMonths.length === months.length;
@@ -789,6 +897,7 @@ function renderTable() {
 
             const row = document.createElement('tr');
             row.className = rowCls;
+            row.style.setProperty('--r', rowIdx++);
             row.innerHTML = `
                 <td class="text-left unit-name">${item.unit}</td>
                 <td style="font-weight: 600;">${mName}</td>
@@ -811,6 +920,7 @@ function renderTable() {
 
                 const qRow = document.createElement('tr');
                 qRow.className = 'q-total';
+                qRow.style.setProperty('--r', rowIdx++);
                 qRow.innerHTML = `
                     <td class="text-left unit-name" style="font-weight: 700;">${quarters[qIdx]}</td>
                     <td style="color:#626b75; font-weight: 600;">Total</td>
@@ -833,64 +943,80 @@ function renderTable() {
     const totYoyVar = totActual - totLastYear;
     const totYoyPct = totLastYear > 0 ? (totYoyVar / totLastYear) * 100 : 0;
 
+    const enter = firstPaint ? ' enter' : '';
     document.getElementById('summaryGrid').innerHTML = `
-        <div class="card">
+        <div class="card${enter}" style="--i:1">
             <div class="card-header">
                 <h3>Target (Selected)</h3>
                 <div class="card-icon">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle></svg>
                 </div>
             </div>
-            <div class="value">${fmt(totGoal)}</div>
+            <div class="value" data-cu="target">${fmt(totGoal)}</div>
             <div class="sub">from budget document</div>
         </div>
-        <div class="card">
+        <div class="card${enter}" style="--i:2">
             <div class="card-header">
                 <h3>Revenue Recognized (Selected)</h3>
                 <div class="card-icon" style="background-color: var(--gulf-teal-light); color: var(--gulf-teal);">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
             </div>
-            <div class="value">${totRows > 0 ? fmt(totActual) : '—'}</div>
+            <div class="value" data-cu="recognized">${totRows > 0 ? fmt(totActual) : '—'}</div>
             <div class="sub">Revenue by Check-Ins</div>
         </div>
-        <div class="card">
+        <div class="card${enter}" style="--i:3">
             <div class="card-header">
                 <h3>Variance ($)</h3>
                 <div class="card-icon" style="background-color: ${totVar >= 0 ? 'var(--gulf-teal-light)' : 'var(--coral-rose-light)'}; color: ${totVar >= 0 ? 'var(--gulf-teal)' : 'var(--coral-rose)'};">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>
                 </div>
             </div>
-            <div class="value ${totVar >= 0 ? 'variance-pos' : 'variance-neg'}">
+            <div class="value ${totVar >= 0 ? 'variance-pos' : 'variance-neg'}" data-cu="variance">
                 ${totRows > 0 ? (totVar >= 0 ? '+' : '') + fmt(totVar) : '—'}
             </div>
             <div class="sub">vs budget</div>
         </div>
-        <div class="card">
+        <div class="card${enter}" style="--i:4">
             <div class="card-header">
                 <h3>Revenue Recognized v/s Target</h3>
                 <div class="card-icon" style="background-color: ${totVar >= 0 ? 'var(--gulf-teal-light)' : 'var(--coral-rose-light)'}; color: ${totVar >= 0 ? 'var(--gulf-teal)' : 'var(--coral-rose)'};">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 </div>
             </div>
-            <div class="value ${totVar >= 0 ? 'variance-pos' : 'variance-neg'}">
+            <div class="value ${totVar >= 0 ? 'variance-pos' : 'variance-neg'}" data-cu="variancePct">
                 ${totRows > 0 ? (totVarPct >= 0 ? '↑' : '↓') + ' ' + Math.abs(totVarPct).toFixed(1) + '%' : '—'}
             </div>
             <div class="sub"></div>
         </div>
-        <div class="card">
+        <div class="card${enter}" style="--i:5">
             <div class="card-header">
                 <h3>Revenue Recognized YOY</h3>
                 <div class="card-icon" style="background-color: ${totYoyVar >= 0 ? 'var(--gulf-teal-light)' : 'var(--coral-rose-light)'}; color: ${totYoyVar >= 0 ? 'var(--gulf-teal)' : 'var(--coral-rose)'};">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                 </div>
             </div>
-            <div class="value ${totYoyVar >= 0 ? 'variance-pos' : 'variance-neg'}">
+            <div class="value ${totYoyVar >= 0 ? 'variance-pos' : 'variance-neg'}" data-cu="yoy">
                 ${totLYRows > 0 ? (totYoyVar >= 0 ? '↑' : '↓') + ' ' + Math.abs(totYoyPct).toFixed(1) + '%' : '—'}
             </div>
             <div class="sub">${totLYRows > 0 ? fmt(totActual) + ' vs ' + fmt(totLastYear) + ' LY' : 'last year data not loaded'}</div>
         </div>
     `;
+
+    // Count the tile numbers up (first open) or glide them to the new value (filter change).
+    // Same formatters as above, so the number format and currency symbol are unchanged.
+    const cu = {
+        target:      [totGoal,                         fmt],
+        recognized:  [totRows > 0 ? totActual : null,  fmt],
+        variance:    [totRows > 0 ? totVar : null,     v => (v >= 0 ? '+' : '') + fmt(v)],
+        variancePct: [totRows > 0 ? totVarPct : null,  v => (v >= 0 ? '↑' : '↓') + ' ' + Math.abs(v).toFixed(1) + '%'],
+        yoy:         [totLYRows > 0 ? totYoyPct : null, v => (v >= 0 ? '↑' : '↓') + ' ' + Math.abs(v).toFixed(1) + '%']
+    };
+    document.querySelectorAll('#summaryGrid [data-cu]').forEach((el, i) => {
+        const [to, format] = cu[el.dataset.cu];
+        CountUp.run(el, el.dataset.cu, to, format, { delay: firstPaint ? (i + 1) * 60 : 0 });
+    });
+    firstPaint = false;
 }
 
 // ── Path to Budget — flat weekly target ────────────────────────────────────
@@ -905,7 +1031,7 @@ function weeksLeftAndElapsed() {
     return { weeksLeft, weeksElapsed };
 }
 
-function weeklyTargetRow(unit, target, revenueRecognized, actualYTD, weeksLeft, weeksElapsed, isTotal) {
+function weeklyTargetRow(unit, target, revenueRecognized, actualYTD, weeksLeft, weeksElapsed, isTotal, rowIndex) {
     // Remaining to Budget = Target − Revenue Recognized (mirrors the top scorecards)
     const remaining    = target - revenueRecognized;
     const met          = remaining <= 0;
@@ -937,7 +1063,7 @@ function weeklyTargetRow(unit, target, revenueRecognized, actualYTD, weeksLeft, 
     const currentPaceCell = `<span class="calc-hint" data-tip="${currentPaceTip}">${fmt(currentPace)}</span>`;
 
     return `
-        <tr class="${isTotal ? 'q-total' : ''}">
+        <tr class="${isTotal ? 'q-total' : ''}" style="--r:${rowIndex}">
             <td class="text-left unit-name">${unit}</td>
             <td class="goal-col">${fmt(target)}</td>
             <td class="actual-col">${fmt(revenueRecognized)}</td>
@@ -955,6 +1081,7 @@ function renderWeeklyTargets() {
 
     let totTarget = 0, totRevenueRecognized = 0, totActualYTD = 0;
     let rowsHtml = '';
+    let rowCount = 0;
 
     rawData.forEach(item => {
         if (!selectedUnits.includes(item.unit)) return;
@@ -966,11 +1093,11 @@ function renderWeeklyTargets() {
         totTarget += target;
         totRevenueRecognized += revenueRecognized;
         totActualYTD += actualYTD;
-        rowsHtml += weeklyTargetRow(item.unit, target, revenueRecognized, actualYTD, weeksLeft, weeksElapsed, false);
+        rowsHtml += weeklyTargetRow(item.unit, target, revenueRecognized, actualYTD, weeksLeft, weeksElapsed, false, rowCount++);
     });
 
     if (selectedUnits.length === rawData.length) {
-        rowsHtml += weeklyTargetRow('GCVR TOTAL', totTarget, totRevenueRecognized, totActualYTD, weeksLeft, weeksElapsed, true);
+        rowsHtml += weeklyTargetRow('GCVR TOTAL', totTarget, totRevenueRecognized, totActualYTD, weeksLeft, weeksElapsed, true, rowCount++);
     }
 
     document.getElementById('weeklyTargetBody').innerHTML = rowsHtml;
@@ -1028,6 +1155,18 @@ function toggleMsDropdown(dropdownId) {
     const dd = document.getElementById(dropdownId);
     dd.querySelector('.ms-panel').classList.toggle('open');
     dd.querySelector('.ms-toggle').classList.toggle('open');
+    syncMsBackdrop();
+}
+
+// Soft blur behind an open filter pop-up; the open dropdown is lifted above it.
+function syncMsBackdrop() {
+    let anyOpen = false;
+    document.querySelectorAll('.ms-dropdown').forEach(d => {
+        const open = d.querySelector('.ms-panel').classList.contains('open');
+        d.classList.toggle('is-open', open);
+        anyOpen = anyOpen || open;
+    });
+    document.getElementById('msBackdrop').classList.toggle('show', anyOpen);
 }
 
 document.addEventListener('click', (e) => {
@@ -1037,6 +1176,7 @@ document.addEventListener('click', (e) => {
             d.querySelector('.ms-toggle').classList.remove('open');
         }
     });
+    syncMsBackdrop();
 });
 
 function setupMultiSelect(panelId, labelId, allLabel, onChange) {
