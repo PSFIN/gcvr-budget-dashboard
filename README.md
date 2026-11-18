@@ -85,6 +85,9 @@ Every Monday, right after the 8:00 AM refresh, the job posts one full-width card
 - a table with one row per property: status colour (🟢 target met, 🟡 75-99%, 🔴 under 75%),
   recognized vs target, a progress bar, the change since last week (📈 up, 📉 down, ➖ none) and
   how much is left to book ("to go") or "Met" with the amount over,
+- a **unit check** line: it flags units that earned 2026 revenue but belong to no property (for example a
+  new onboard that nobody has added to the Non-Resort group yet), with the amount that is not counted and the
+  biggest units. It says all clear when there are none. Retired units are ignored,
 - a button that opens the dashboard.
 
 The change compares with the private snapshot saved a week earlier. In the first weeks, before a
@@ -150,6 +153,16 @@ Run these in the Lightsail browser SSH terminal.
 systemctl list-timers budget-update.timer --no-pager; journalctl -u budget-update.service -n 30 --no-pager
 ```
 
+**Get the booking-by-booking sheet behind a figure** (one row per booking that adds up to the dashboard
+number; no guest names). It writes only to the private data folder, never to the website:
+
+```bash
+cd /home/ubuntu/budget-dashboard && python3 build_dashboard.py --dry-run --detail-property Non-Resort --detail-csv /home/ubuntu/budget-data/non-resort-detail.csv
+```
+
+It prints the total of the rows next to the dashboard total so you can see they match. Leave out
+`--detail-property` for every property. Do not put the file in `/var/www/budget`: that folder is public.
+
 **Change the budget targets:** edit the file, then refresh the page. Do the same on the Mac copy.
 
 ```bash
@@ -182,6 +195,7 @@ Without `--dry-run` it writes `dashboard.preview.html` (git-ignored). It never w
 |---|---|
 | Numbers look old | Compare the two times in the page header. If "Page updated" is recent but "Data as of" is old, Streamline's sync (the pacing project) is behind, not this job. If "Page updated" is old, the job did not run |
 | It did not update this morning | `journalctl -u budget-update.service -n 30 --no-pager`, then run `update.sh` by hand |
+| Unit check lists a unit | The unit is in no property group. Add it to the right group in the pacing project's `custom_groups.json` (new Non-Resort onboards go in "Non-Resort (14 Min Below)" or "Non-Resort (30 Min Above)"); the next refresh counts it |
 | Teams message did not arrive | Look for "Teams:" in `journalctl -u budget-update.service -n 40 --no-pager`. "no webhook configured" means the webhook file is missing; "HTTP 4xx" means the workflow was deleted or the address is wrong (create a new one and save it again) |
 | "Could not find budgets_2026.json" | Create it in `/home/ubuntu/budget-data/` (see Private files). The page keeps the last good version meanwhile |
 | "Could not find pacing.db" | The pacing project folder moved. Set `PACING_DIR` in `deploy/update.sh` |

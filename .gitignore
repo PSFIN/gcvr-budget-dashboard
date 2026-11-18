@@ -6,3 +6,4 @@ dashboard.preview.html
 
 # macOS
 .DS_Store
+*.csv

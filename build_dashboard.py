@@ -51,6 +51,7 @@ Options: --pacing-dir DIR, --budgets FILE, --template FILE, --out FILE, --today 
          --webhook-file FILE
 """
 import argparse
+import csv
 import json
 import os
 import re
@@ -125,15 +126,15 @@ def load_streamline(pacing_dir):
                   con.execute("select id, name, condo_type_name, location_resort_name from units")
                   if has((name or "") + (ctype or "") + (resort or ""), "sandalfoot")}
     bookings = []
-    for uid, uname, ctype, typ, status, start, nights, rent, created in con.execute(
+    for uid, uname, ctype, typ, status, start, nights, rent, created, conf, end in con.execute(
             "select unit_id, unit_name, condo_type_name, type_name, status_id, startdate, "
-            "days_number, price_nightly, creation_date from reservations"):
+            "days_number, price_nightly, creation_date, confirmation_id, enddate from reservations"):
         if has((uname or "") + (ctype or ""), "sandalfoot"):
             sandalfoot.add(uid)                      # retired units are only visible here
         if (status in (8, 9) or typ in BLOCK_TYPES or not nights or nights <= 0
                 or not rent or rent <= 0 or not start or not created):
             continue
-        bookings.append((uid, parse_day(start), parse_day(created), rent))
+        bookings.append((uid, parse_day(start), parse_day(created), rent, (conf, uname, end, nights, status, typ)))
     con.close()
 
     non_resort_all = groups["Non-Resort (14 Min Below)"] | groups["Non-Resort (30 Min Above)"]
@@ -157,12 +158,60 @@ def monthly_revenue(bookings, units, year, asof=None):
         for uid in ids:
             owner[uid].append(prop)
     out = {prop: [0.0] * 12 for prop in units}
-    for uid, start, created, rent in bookings:
+    for uid, start, created, rent, _detail in bookings:
         if start.year != year or (asof and created > asof) or uid not in owner:
             continue
         for prop in owner[uid]:
             out[prop][start.month - 1] += rent
     return out
+
+
+def write_detail_csv(path, bookings, units, today, only=None):
+    """One row per booking that makes up the dashboard figure (same rules, so the rows add up to it).
+    No guest names are included. Returns {property: total} for checking against the page."""
+    year = today.year
+    owner = defaultdict(list)
+    for prop, ids in units.items():
+        for uid in ids:
+            owner[uid].append(prop)
+    rows, totals = [], defaultdict(float)
+    for uid, start, created, rent, (conf, uname, end, nights, status, typ) in bookings:
+        if start.year != year or uid not in owner:
+            continue
+        for prop in owner[uid]:
+            if only and prop != only:
+                continue
+            totals[prop] += rent
+            rows.append([prop, start.month, f"{start:%Y-%m-%d}", f"{parse_day(end):%Y-%m-%d}" if end else "", nights, f"{created:%Y-%m-%d}",
+                         conf, uid, uname, typ, status, f"{rent:.2f}",
+                         "booked ahead (future check-in)" if start > today else "checked in"])
+    rows.sort(key=lambda r: (r[0], r[2], r[8] or ""))
+    with open(path, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f)
+        w.writerow(["Property", "Month", "Check-in", "Check-out", "Nights", "Booking created", "Confirmation #",
+                    "Unit ID", "Unit", "Booking type", "Status", "Rent counted ($)", "Counts as"])
+        w.writerows(rows)
+    os.chmod(path, 0o600)                      # it holds revenue detail: owner only
+    return totals
+
+
+def find_unassigned(pacing_dir, bookings, units, year):
+    """Units that earn revenue this year but belong to no dashboard property (for example a new
+    onboard nobody has added to a group yet). Returns (current, retired):
+      current  [(unit name, revenue)] for units still in Streamline's unit list, biggest first
+      retired  (count, revenue) for units that have left the list (old bookings only: ignored in the card)"""
+    owned = set().union(*units.values())
+    rev = defaultdict(float)
+    for uid, start, created, rent, _detail in bookings:
+        if start.year == year and uid not in owned:
+            rev[uid] += rent
+    con = sqlite3.connect(f"file:{os.path.join(pacing_dir, 'pacing.db')}?mode=ro", uri=True)
+    names = dict(con.execute("select id, name from units"))
+    con.close()
+    current = sorted(((names[u] or f"unit {u}", v) for u, v in rev.items() if u in names),
+                     key=lambda x: -x[1])
+    gone = [v for u, v in rev.items() if u not in names]
+    return current, (len(gone), sum(gone))
 
 
 # ── Reading / patching the dashboard ──────────────────────────────────────────
@@ -291,7 +340,22 @@ def to_go(remaining):
     return f"✅ Met (+{money(-remaining)})", "Good"
 
 
-def build_message(rows, prev_rows, prev_label, today, data_as_of):
+def unassigned_line(unassigned):
+    """(text, Adaptive Card colour) for the 'units not in any property' check."""
+    if unassigned is None:
+        return None
+    if not unassigned:
+        return "✅ Unit check: every unit with 2026 revenue is assigned to a property.", "Good"
+    total = sum(v for _, v in unassigned)
+    top = ", ".join(f"{n} ({money(v)})" for n, v in unassigned[:3])
+    more = f" +{len(unassigned) - 3} more" if len(unassigned) > 3 else ""
+    noun = "unit is" if len(unassigned) == 1 else "units are"
+    return (f"⚠️ **Unit check: {len(unassigned)} {noun} not in any property, so {money(total)} of 2026 "
+            f"revenue is not counted above:** {top}{more}. Add new onboards to their group in the "
+            f"pacing project."), "Warning"
+
+
+def build_message(rows, prev_rows, prev_label, today, data_as_of, unassigned=None):
     """Returns (plain text for the log, Adaptive Card payload for Teams)."""
     def cells(name):
         r = rows[name]
@@ -318,7 +382,8 @@ def build_message(rows, prev_rows, prev_label, today, data_as_of):
     for name in PROPERTY_ORDER:
         c = cells(name)
         lines.append(f"{status_emoji(c['pct'])} {name}: {c['money']} · {c['bar']} · {c['change']} · {c['go']}")
-    text = "\n".join(lines + ["", footer])
+    check = unassigned_line(unassigned)
+    text = "\n".join(lines + ([""] + [check[0]] if check else []) + ["", footer])
 
     def row(values, header=False):
         """One table row as an Adaptive Card ColumnSet (weights give full-width columns)."""
@@ -345,6 +410,9 @@ def build_message(rows, prev_rows, prev_label, today, data_as_of):
         body.append(row([(status_emoji(c["pct"]), "Default"), (f"**{name}**", "Default"),
                          (c["money"], "Default"), (c["bar"], status_color(c["pct"])),
                          (c["change"], c["change_color"]), (c["go"], c["go_color"])]))
+    if check:
+        body.append({"type": "TextBlock", "text": check[0], "color": check[1], "wrap": True,
+                     "spacing": "Medium"})
     body.append({"type": "TextBlock", "text": footer, "isSubtle": True, "size": "Small",
                  "wrap": True, "spacing": "Medium"})
     card = {"type": "message", "attachments": [{
@@ -371,7 +439,8 @@ def post_to_teams(webhook_url, payload):
         raise RuntimeError(f"could not reach Teams ({type(e).__name__})")
 
 
-def notify_teams(args, today, rows, data_as_of, bookings, units, budgets, history_dir, webhook_file):
+def notify_teams(args, today, rows, data_as_of, bookings, units, budgets, history_dir, webhook_file,
+                 unassigned=None):
     """Post the weekly summary when it is due. Never raises: the page is already written."""
     due = (args.force_notify or args.notify == "daily"
            or (args.notify == "monday" and today.weekday() == 0))
@@ -402,7 +471,7 @@ def notify_teams(args, today, rows, data_as_of, bookings, units, budgets, histor
         asof = today - timedelta(days=7)
         prev_rows = portfolio_numbers(budgets, monthly_revenue(bookings, units, today.year, asof))
         prev_label = f"{asof:%b} {asof.day}, estimated from booking dates"
-    text, card = build_message(rows, prev_rows, prev_label, today, data_as_of)
+    text, card = build_message(rows, prev_rows, prev_label, today, data_as_of, unassigned)
     print("\n  Teams message:\n" + "\n".join("    " + t for t in text.splitlines()))
     if args.dry_run:
         print("\n  Dry run: not posting.")
@@ -427,6 +496,8 @@ def main():
     ap.add_argument("--out", default=os.path.join(HERE, "dashboard.preview.html"),
                     help="where to write the finished page (default: dashboard.preview.html, git-ignored)")
     ap.add_argument("--today", help="YYYY-MM-DD, for testing")
+    ap.add_argument("--detail-csv", help="also write one row per booking behind the figures to this CSV (private: never publish it)")
+    ap.add_argument("--detail-property", choices=PROPERTY_ORDER, help="limit --detail-csv to one property (default: all)")
     ap.add_argument("--max-age-hours", type=float, default=48, help="warn if pacing.db is older than this")
     ap.add_argument("--dry-run", action="store_true", help="calculate and report, write nothing")
     ap.add_argument("--notify", choices=["off", "monday", "daily"], default="off",
@@ -460,6 +531,14 @@ def main():
     current = monthly_revenue(bookings, units, today.year)
     last_year = monthly_revenue(bookings, units, today.year - 1, ly_asof)
 
+    if args.detail_csv:
+        totals = write_detail_csv(args.detail_csv, bookings, units, today, args.detail_property)
+        print(f"\n  Booking detail written: {args.detail_csv}")
+        for prop in PROPERTY_ORDER:
+            if prop in totals:
+                same = abs(totals[prop] - sum(current[prop])) < 0.01
+                print(f"    {prop:<17}{totals[prop]:>14,.2f}  {'= dashboard full-year total' if same else 'DOES NOT MATCH the dashboard: ' + format(sum(current[prop]), ',.2f')}")
+
     html = open(args.template).read()
     stamp = "%-m/%-d/%Y %-I:%M %p"
     generated = (last_sync or datetime.now()).strftime(stamp)       # when Streamline last synced
@@ -469,8 +548,17 @@ def main():
     print_summary(budgets, current, today)
 
     rows = portfolio_numbers(budgets, current)
+    unassigned, (gone_n, gone_rev) = find_unassigned(pacing_dir, bookings, units, today.year)
+    if unassigned:
+        print(f"\n  !! {len(unassigned)} unit(s) with {today.year} revenue are in no property "
+              f"({sum(v for _, v in unassigned):,.0f}): " + ", ".join(n for n, _ in unassigned[:5]))
+    else:
+        print(f"\n  Unit check: every unit with {today.year} revenue is assigned to a property.")
+    if gone_n:
+        print(f"  ({gone_n} retired unit(s) also have {today.year} bookings worth {gone_rev:,.0f}; not counted.)")
     if args.dry_run:
-        notify_teams(args, today, rows, generated, bookings, units, budgets, args.history_dir, webhook_file)
+        notify_teams(args, today, rows, generated, bookings, units, budgets, args.history_dir, webhook_file,
+                     unassigned)
         print("\n  Dry run: nothing written.\n")
         return
     target = args.out
@@ -478,7 +566,8 @@ def main():
     print(f"\n  Dashboard written: {target}")
     if args.history_dir:
         save_snapshot(args.history_dir, today, rows, generated)
-    notify_teams(args, today, rows, generated, bookings, units, budgets, args.history_dir, webhook_file)
+    notify_teams(args, today, rows, generated, bookings, units, budgets, args.history_dir, webhook_file,
+                 unassigned)
     print()
 
 
