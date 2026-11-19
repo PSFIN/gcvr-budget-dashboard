@@ -129,6 +129,7 @@ The page keeps refreshing either way.
 | File | Server location | Holds |
 |---|---|---|
 | `budgets_2026.json` | `/home/ubuntu/budget-data/` (and next to `build_dashboard.py` on the Mac) | The monthly targets: one entry per property, 12 numbers each, January to December |
+| `unit_overrides.json` | `/home/ubuntu/budget-data/` (optional) | Units forced into Non-Resort: `{"non_resort_add": [unit ids]}`. They are taken out of every other property, so a unit that also sits in the Island Vacations group is not counted twice. For new onboards missing from the pacing project's groups |
 | `teams_webhook.url` | `/home/ubuntu/budget-data/` | The Teams webhook address |
 | `history/` | `/home/ubuntu/budget-data/` | One small snapshot a day, for the week-over-week change |
 
@@ -195,7 +196,7 @@ Without `--dry-run` it writes `dashboard.preview.html` (git-ignored). It never w
 |---|---|
 | Numbers look old | Compare the two times in the page header. If "Page updated" is recent but "Data as of" is old, Streamline's sync (the pacing project) is behind, not this job. If "Page updated" is old, the job did not run |
 | It did not update this morning | `journalctl -u budget-update.service -n 30 --no-pager`, then run `update.sh` by hand |
-| Unit check lists a unit | The unit is in no property group. Add it to the right group in the pacing project's `custom_groups.json` (new Non-Resort onboards go in "Non-Resort (14 Min Below)" or "Non-Resort (30 Min Above)"); the next refresh counts it |
+| Unit check lists a unit | The unit is in no property group. Add it to the right group in the pacing project's `custom_groups.json` (new Non-Resort onboards go in "Non-Resort (14 Min Below)" or "Non-Resort (30 Min Above)"); the next refresh counts it. For a dashboard-only fix, add the unit's id to `non_resort_add` in `unit_overrides.json` (see Private files) |
 | Teams message did not arrive | Look for "Teams:" in `journalctl -u budget-update.service -n 40 --no-pager`. "no webhook configured" means the webhook file is missing; "HTTP 4xx" means the workflow was deleted or the address is wrong (create a new one and save it again) |
 | "Could not find budgets_2026.json" | Create it in `/home/ubuntu/budget-data/` (see Private files). The page keeps the last good version meanwhile |
 | "Could not find pacing.db" | The pacing project folder moved. Set `PACING_DIR` in `deploy/update.sh` |

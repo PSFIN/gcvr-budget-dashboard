@@ -28,8 +28,12 @@ Unit groups:
   Island Vacations  units in "Island Vacations" that are also in a Non-Resort group or
                     in "Lais (ALL- NonResort)"
   Non-Resort        the two Non-Resort groups MINUS Island Vacations
+  Overrides         optional unit_overrides.json (see below) forces units into Non-Resort
 
 Private inputs (never in Git: the repo is public):
+  unit_overrides.json  optional, next to the budgets: {"non_resort_add": [unit ids]}. Those units
+                     count as Non-Resort and are taken out of every other property. Use it for
+                     new onboards that are not in the pacing project's custom_groups.json yet.
   budgets_2026.json  {"Sandalfoot": [12 monthly numbers], ...} one entry per property.
                      The template dashboard_template.html holds no figures at all; the
                      script fills in targets, actuals and last year.
@@ -111,7 +115,28 @@ def has(text, word):
     return word in (text or "").lower()
 
 
-def load_streamline(pacing_dir):
+def apply_unit_overrides(units, path, known_ids):
+    """Optional private file {"non_resort_add": [unit ids]}: force those units into Non-Resort.
+
+    They are removed from every other property first, so a unit that also sits in the Island
+    Vacations group is not counted twice. Changes `units` in place and returns the ids applied."""
+    if not path or not os.path.exists(path):
+        return []
+    try:
+        ids = {int(x) for x in json.load(open(path)).get("non_resort_add", [])}
+    except (ValueError, TypeError, AttributeError) as e:
+        sys.exit(f"{path} is not valid. It must look like {{\"non_resort_add\": [1153621, 929680]}} ({e})")
+    for prop in units:
+        units[prop] = units[prop] - ids
+    units["Non-Resort"] = units["Non-Resort"] | ids
+    unknown = sorted(ids - known_ids)
+    print(f"  Overrides: {len(ids)} unit(s) forced into Non-Resort from {os.path.basename(path)}")
+    if unknown:
+        print(f"  !! WARNING: these override unit ids are not in Streamline's data (typo?): {unknown}")
+    return sorted(ids)
+
+
+def load_streamline(pacing_dir, overrides_path=None):
     """Returns (property -> set of unit ids, qualifying bookings, last_sync datetime)."""
     groups = {k: set(v) for k, v in json.load(open(os.path.join(pacing_dir, "custom_groups.json"))).items()}
     missing = [g for g in REQUIRED_GROUPS if g not in groups]
@@ -135,6 +160,8 @@ def load_streamline(pacing_dir):
                 or not rent or rent <= 0 or not start or not created):
             continue
         bookings.append((uid, parse_day(start), parse_day(created), rent, (conf, uname, end, nights, status, typ)))
+    known_ids = {r[0] for r in con.execute("select id from units")} | \
+                {r[0] for r in con.execute("select distinct unit_id from reservations")}
     con.close()
 
     non_resort_all = groups["Non-Resort (14 Min Below)"] | groups["Non-Resort (30 Min Above)"]
@@ -148,6 +175,7 @@ def load_streamline(pacing_dir):
         "Non-Resort": non_resort_all - island,
         "Island Vacations": island,
     }
+    apply_unit_overrides(units, overrides_path, known_ids)
     return units, bookings, last_sync
 
 
@@ -492,6 +520,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pacing-dir")
     ap.add_argument("--budgets", help="private budgets_2026.json (default: server path, or next to this script)")
+    ap.add_argument("--overrides", help="private unit_overrides.json (default: next to the budgets file)")
     ap.add_argument("--template", default=os.path.join(HERE, "dashboard_template.html"))
     ap.add_argument("--out", default=os.path.join(HERE, "dashboard.preview.html"),
                     help="where to write the finished page (default: dashboard.preview.html, git-ignored)")
@@ -514,7 +543,8 @@ def main():
     budgets_path = find_budgets(args.budgets)
     budgets = load_budgets(budgets_path)
     webhook_file = args.webhook_file or os.path.join(os.path.dirname(budgets_path), "teams_webhook.url")
-    units, bookings, last_sync = load_streamline(pacing_dir)
+    units, bookings, last_sync = load_streamline(
+        pacing_dir, args.overrides or os.path.join(os.path.dirname(budgets_path), "unit_overrides.json"))
 
     print("=" * 66)
     print(f"  GCVR Budget Dashboard — Streamline  —  {today.month}/{today.day}/{today.year}")
