@@ -644,6 +644,12 @@ th .arr { opacity:.6; margin-left:3px; }
 .toggle-row:last-child { border-bottom:0; }
 .toggle-row b { color:var(--gulf-navy); font-size:.9rem; }
 .toggle-row span { display:block; color:var(--text-muted); font-size:.8rem; }
+.link-btn { border:0; background:none; color:var(--gulf-gold-hover); font:700 .75rem var(--font-sans); cursor:pointer; padding:0 4px; }
+.link-btn:hover { text-decoration:underline; }
+.units-wrap select { padding:5px 6px; border:1px solid var(--border-sand); border-radius:8px; background:var(--card-white); font:500 .78rem var(--font-sans); color:var(--text-navy); max-width:170px; }
+.units-wrap tr.editing td { background:var(--border-light); }
+.edit-bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px; padding:10px 14px; border:1px solid var(--border-sand); border-left:4px solid var(--gulf-gold); border-radius:10px; background:var(--card-white); font-size:.82rem; color:var(--text-muted); }
+.edit-bar .grow { flex:1 1 320px; }
 .units-wrap th, .units-wrap td { padding:9px 12px; white-space:nowrap; }
 .units-wrap .unit-name { font-family:var(--font-sans); font-size:.8rem; font-weight:600; }
 .drawer tbody tr { animation:none !important; }
@@ -735,6 +741,22 @@ th .arr { opacity:.6; margin-left:3px; }
 const APP = __APP_DATA__;
 
 const U = APP.units;
+// Local edits (made in Settings) live in this browser only; the published value of every field is kept in u._o.
+const EDIT_KEY = 'gcvr_v2_edits';
+const EDIT_FIELDS = ['p', 'c', 's', 't', 'tm', 'rg'];
+U.forEach(u => { u._o = {}; EDIT_FIELDS.forEach(f => { u._o[f] = u[f] || ''; }); });
+let edits = {};
+try { edits = JSON.parse(localStorage.getItem(EDIT_KEY) || '{}') || {}; } catch (e) { edits = {}; }
+const saveEdits = () => { try { localStorage.setItem(EDIT_KEY, JSON.stringify(edits)); } catch (e) {} };
+function applyEdits() {
+    U.forEach(u => {
+        EDIT_FIELDS.forEach(f => { u[f] = u._o[f]; });
+        const e = edits[u.id];
+        if (e) EDIT_FIELDS.forEach(f => { if (f in e) u[f] = e[f]; });
+        u.ed = e && Object.keys(e).length ? 1 : 0;
+    });
+}
+applyEdits();
 const BUDGETS = APP.budgets;
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const CUR = APP.currentMonth;                                   // 1-12
@@ -767,15 +789,21 @@ const DIMS = [
 ];
 const F = {};
 const optionValues = {};
-DIMS.forEach(d => {
-    const counts = {};
-    U.forEach(u => { const v = d.get(u); counts[v] = (counts[v] || 0) + 1; });
-    let vals = Object.keys(counts);
-    if (d.order) vals.sort((a, b) => (d.order.indexOf(a) + 1 || 99) - (d.order.indexOf(b) + 1 || 99));
-    else vals.sort((a, b) => (a === NONE_SUB) - (b === NONE_SUB) || counts[b] - counts[a] || a.localeCompare(b));
-    optionValues[d.key] = vals.map(v => [v, counts[v]]);
-    F[d.key] = new Set(vals.filter(v => !(d.key === 'prop' && v === 'Not in any property')));
-});
+function computeOptions() {
+    DIMS.forEach(d => {
+        const counts = {};
+        U.forEach(u => { const v = d.get(u); counts[v] = (counts[v] || 0) + 1; });
+        const vals = Object.keys(counts);
+        if (d.order) vals.sort((a, b) => (d.order.indexOf(a) + 1 || 99) - (d.order.indexOf(b) + 1 || 99));
+        else vals.sort((a, b) => (a === NONE_SUB) - (b === NONE_SUB) || counts[b] - counts[a] || a.localeCompare(b));
+        const prevVals = new Set((optionValues[d.key] || []).map(x => x[0])), prev = F[d.key];
+        optionValues[d.key] = vals.map(v => [v, counts[v]]);
+        // keep the current selection; a value that did not exist before is selected (except units in no property)
+        F[d.key] = new Set(vals.filter(v => (d.key === 'prop' && v === 'Not in any property') ? !!(prev && prev.has(v))
+                                                                                         : (prev ? (prev.has(v) || !prevVals.has(v)) : true)));
+    });
+}
+computeOptions();
 F.month = new Set(MONTHS.map((_, i) => i));
 const allSelected = key => key === 'month' ? F.month.size === 12 : optionValues[key].every(([v]) => F[key].has(v));
 
@@ -951,15 +979,19 @@ function renderMonths(sel, idx) {
 }
 
 function renderBanner() {
-    const m = APP.matrix, el = document.getElementById('banner');
-    el.innerHTML = !m.loaded ? '<div class="note-banner"><b>Subcategories are not loaded.</b> The Sales Master Matrix has not been added to the server yet, so units show “(not set)” for subcategory, tag and team fall back to Streamline and KeyData.</div>' : '';
+    const m = APP.matrix, el = document.getElementById('banner'), n = Object.keys(edits).length;
+    let html = !m.loaded ? '<div class="note-banner"><b>Subcategories are not loaded.</b> The Sales Master Matrix has not been added to the server yet, so units show “(not set)” for subcategory, tag and team fall back to Streamline and KeyData.</div>' : '';
+    if (n) html += `<div class="note-banner"><b>${n} unit${n > 1 ? 's' : ''} edited in this browser.</b> The numbers and filters below use your edits; other people do not see them. <button type="button" class="link-btn" id="bnReview">Review in Settings</button> · <button type="button" class="link-btn" id="bnReset">Reset all</button></div>`;
+    el.innerHTML = html;
+    const r = document.getElementById('bnReview'); if (r) r.addEventListener('click', () => { drawerTab = 'units'; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'units')); openDrawer(); });
+    const z = document.getElementById('bnReset'); if (z) z.addEventListener('click', () => { if (confirm('Remove all your edits and go back to the published settings?')) { edits = {}; commitEdits(); } });
 }
 function renderGroupSeg() {
     document.getElementById('groupSeg').innerHTML = GROUPS.map(([k, l]) => `<button type="button" data-g="${k}" class="${prefs.group === k ? 'on' : ''}">${l}</button>`).join('');
 }
 function render() {
     const sel = U.filter(passes), idx = monthIdx();
-    renderCards(sel, idx); renderBreakdown(sel, idx); renderMonths(sel, idx); renderGroupSeg();
+    renderBanner(); renderCards(sel, idx); renderBreakdown(sel, idx); renderMonths(sel, idx); renderGroupSeg();
 }
 document.getElementById('groupSeg').addEventListener('click', e => { const b = e.target.closest('button[data-g]'); if (b) { prefs.group = b.dataset.g; savePrefs(); render(); } });
 document.getElementById('breakdownHead').addEventListener('click', e => {
@@ -1008,16 +1040,98 @@ function tableCounts(title, key) {
     const rows = optionValues[key].map(([v]) => `<tr><td>${esc(v)}</td><td class="r">${c[v].n}</td><td class="r">${fmt(c[v].r)}</td></tr>`).join('');
     return `<div class="panel-card"><h3>${title}</h3><table class="mini"><tr><th>Value</th><th class="r">Units</th><th class="r">${APP.year} revenue</th></tr>${rows}</table></div>`;
 }
+let editingId = null;
+const withCur = (vals, cur) => (cur !== '' && !vals.some(x => x[0] === cur)) ? vals.concat([[cur, cur]]) : vals;
+const optHtml = (id, cur, vals) => `<select id="${id}">${withCur(vals, cur).map(([v, l]) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+function commitEdits() { saveEdits(); applyEdits(); computeOptions(); buildFilters(); refreshLabels(); render(); if (drawer.classList.contains('open')) renderDrawer(); }
+function unitRow(u) {
+    const tail = `<td>${u.mx ? '✓' : '<span class="pill warn">no</span>'}</td><td class="actual-col">${fmt(yearRev(u))}</td>`;
+    const status = `<td class="text-left">${u.st === 'Active' ? '<span class="pill ok">Active</span>' : '<span class="pill warn">Retired</span>'}</td><td class="text-left">${esc(u.on || '—')}</td>`;
+    if (u.id === editingId) {
+        const subs = [['', NONE_SUB]].concat(optionValues.sub.map(x => x[0]).filter(v => v !== NONE_SUB).map(v => [v, v]), [['__new__', '＋ New subcategory…']]);
+        return `<tr class="editing"><td class="text-left unit-name">${esc(u.n)}</td><td>${u.id}</td>
+          <td>${optHtml('ed_p', u.p, PROP_ORDER.map(p => [p, p]))}</td>
+          <td>${optHtml('ed_c', u.c, [['Resort', 'Resort'], ['Non-Resort', 'Non-Resort'], ['Unclassified', 'Unclassified']])}</td>
+          <td>${optHtml('ed_s', u.s || '', subs)}</td>
+          <td>${optHtml('ed_t', u.t || '', [['', 'None'], ['Seasonal', 'Seasonal'], ['Luxury', 'Luxury']])}</td>
+          <td>${optHtml('ed_tm', u.tm || '', [['', 'Other'], ['Dave', 'Dave'], ['Jessica', 'Jessica']])}</td>
+          <td>${optHtml('ed_rg', u.rg || '', [['', '—'], ['North', 'North'], ['South', 'South'], ['Central', 'Central']])}</td>
+          ${status}${tail}<td class="text-left" style="white-space:nowrap"><button class="icon-btn" type="button" data-save="${u.id}">Save</button> <button class="link-btn" type="button" data-cancel="1">Cancel</button></td></tr>`;
+    }
+    const pill = u.ed ? ' <span class="pill" title="Edited in this browser">edited</span>' : (u.pub ? ' <span class="pill ok" title="Published setting">set</span>' : '');
+    return `<tr><td class="text-left unit-name">${esc(u.n)}${pill}</td><td>${u.id}</td><td class="text-left">${esc(u.p)}</td><td class="text-left">${esc(u.c)}</td><td class="text-left">${esc(u.s || NONE_SUB)}</td><td class="text-left">${esc(u.t || '—')}</td><td class="text-left">${esc(u.tm || '—')}</td><td class="text-left">${esc(u.rg || '—')}</td>${status}${tail}
+      <td class="text-left" style="white-space:nowrap"><button class="link-btn" type="button" data-edit="${u.id}">Edit</button>${u.ed ? `<button class="link-btn" type="button" data-reset="${u.id}">Reset</button>` : ''}</td></tr>`;
+}
 function renderUnitsTab() {
-    const list = U.filter(unitFilter);
-    const rows = list.map(u => `<tr><td class="text-left unit-name">${esc(u.n)}</td><td>${u.id}</td><td class="text-left">${esc(u.p)}</td><td class="text-left">${esc(u.c)}</td><td class="text-left">${esc(u.s || NONE_SUB)}</td><td class="text-left">${esc(u.t || '—')}</td><td class="text-left">${esc(u.tm || '—')}</td><td class="text-left">${esc(u.rg || '—')}</td><td class="text-left">${u.st === 'Active' ? '<span class="pill ok">Active</span>' : '<span class="pill warn">Retired</span>'}</td><td class="text-left">${esc(u.on || '—')}</td><td>${u.mx ? '✓' : '<span class="pill warn">no</span>'}</td><td class="actual-col">${fmt(yearRev(u))}</td></tr>`).join('');
-    return `<div class="toolbar">
+    const list = U.filter(unitFilter), nEd = Object.keys(edits).length;
+    return `<div class="edit-bar"><div class="grow"><b style="color:var(--gulf-navy)">Edit a unit</b> with the Edit button: property, category, subcategory, tag, Dave / Jessica and region. Your change updates the page straight away and is saved in this browser only.
+        To make agreed changes permanent for everyone, download them and send the file to be published.</div>
+        <button class="icon-btn" type="button" id="dlChanges" ${nEd ? '' : 'disabled style="opacity:.5;cursor:default"'}>Download changes (${nEd})</button>
+        <button class="icon-btn" type="button" id="impChanges">Import changes</button><input type="file" id="impFile" accept=".json,application/json" hidden>
+        <button class="icon-btn" type="button" id="resetAll" ${nEd ? '' : 'disabled style="opacity:.5;cursor:default"'}>Reset all</button></div>
+      <div class="toolbar">
         <input type="search" id="ufq" placeholder="Search unit name or ID" value="${esc(uf.q)}">
         ${selHtml('prop', 'Property', optionValues.prop.map(x => x[0]))}${selHtml('cat', 'Category', optionValues.cat.map(x => x[0]))}${selHtml('sub', 'Subcategory', optionValues.sub.map(x => x[0]))}
         ${selHtml('tag', 'Tag', optionValues.tag.map(x => x[0]))}${selHtml('team', 'Dave / Jessica', optionValues.team.map(x => x[0]))}${selHtml('st', 'Status', ['Active', 'Retired'])}
         <span class="pill">${list.length} of ${U.length} units</span>
         <button class="icon-btn" type="button" id="unitsCsv" style="margin-left:auto">Download units CSV</button></div>
-      <div class="units-wrap"><table><thead><tr><th class="text-left">Unit</th><th>ID</th><th class="text-left">Property</th><th class="text-left">Category</th><th class="text-left">Subcategory</th><th class="text-left">Tag</th><th class="text-left">Dave / Jessica</th><th class="text-left">Region</th><th class="text-left">Status</th><th class="text-left">Onboarded</th><th>In Matrix</th><th>${APP.year} revenue</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      <div class="units-wrap"><table><thead><tr><th class="text-left">Unit</th><th>ID</th><th class="text-left">Property</th><th class="text-left">Category</th><th class="text-left">Subcategory</th><th class="text-left">Tag</th><th class="text-left">Dave / Jessica</th><th class="text-left">Region</th><th class="text-left">Status</th><th class="text-left">Onboarded</th><th>In Matrix</th><th>${APP.year} revenue</th><th></th></tr></thead><tbody>${list.map(unitRow).join('')}</tbody></table></div>`;
+}
+function saveRow(id) {
+    const u = U.find(x => x.id === id); if (!u) return;
+    const val = k => document.getElementById('ed_' + k).value;
+    const next = { p: val('p'), c: val('c'), s: val('s'), t: val('t'), tm: val('tm'), rg: val('rg') };
+    const e = {};
+    EDIT_FIELDS.forEach(f => { if (next[f] !== u._o[f]) e[f] = next[f]; });
+    if (Object.keys(e).length) edits[id] = e; else delete edits[id];
+    editingId = null; commitEdits();
+}
+function wireUnitsTab(body) {
+    const q = document.getElementById('ufq');
+    q.addEventListener('input', () => { uf.q = q.value.trim().toLowerCase(); const pos = q.selectionStart; renderDrawer(); const n = document.getElementById('ufq'); n.focus(); n.setSelectionRange(pos, pos); });
+    body.querySelectorAll('select[data-uf]').forEach(sl => sl.addEventListener('change', () => { uf[sl.dataset.uf] = sl.value; renderDrawer(); }));
+    body.addEventListener('click', ev => {
+        const t = ev.target.closest('button'); if (!t) return;
+        if (t.dataset.edit) { editingId = Number(t.dataset.edit); renderDrawer(); }
+        else if (t.dataset.cancel) { editingId = null; renderDrawer(); }
+        else if (t.dataset.save) saveRow(Number(t.dataset.save));
+        else if (t.dataset.reset) { delete edits[Number(t.dataset.reset)]; commitEdits(); }
+    });
+    const p = document.getElementById('ed_p');
+    if (p) p.addEventListener('change', () => { const c = propCat(p.value); if (c) document.getElementById('ed_c').value = c; });
+    const sb = document.getElementById('ed_s');
+    if (sb) sb.addEventListener('change', () => {
+        if (sb.value !== '__new__') return;
+        const name = (prompt('Name of the new subcategory (for example 30x12 or 7 Min):') || '').trim();
+        if (!name) { sb.value = ''; return; }
+        const o = document.createElement('option'); o.value = name; o.textContent = name; sb.insertBefore(o, sb.querySelector('option[value="__new__"]')); sb.value = name;
+    });
+    document.getElementById('dlChanges').addEventListener('click', () => {
+        const units = {};
+        Object.keys(edits).forEach(id => { const u = U.find(x => String(x.id) === id); units[id] = Object.assign({ n: u ? u.n : '' }, edits[id]); });
+        const blob = new Blob([JSON.stringify({ note: 'Unit settings edited in Performance Dashboard Version 2. Send this file to be published.', created: new Date().toISOString().slice(0, 10), units }, null, 1)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `unit-changes-${APP.asOf}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    });
+    document.getElementById('impChanges').addEventListener('click', () => document.getElementById('impFile').click());
+    document.getElementById('impFile').addEventListener('change', ev => {
+        const f = ev.target.files[0]; if (!f) return;
+        const rd = new FileReader();
+        rd.onload = () => {
+            try {
+                const data = JSON.parse(rd.result), src = data.units || {}; let n = 0;
+                Object.keys(src).forEach(id => {
+                    const u = U.find(x => String(x.id) === id); if (!u) return;
+                    const e = {}; EDIT_FIELDS.forEach(k => { if (k in src[id] && String(src[id][k]) !== u._o[k]) e[k] = String(src[id][k]); });
+                    if (Object.keys(e).length) { edits[u.id] = Object.assign(edits[u.id] || {}, e); n++; }
+                });
+                commitEdits(); alert(n + ' unit change' + (n === 1 ? '' : 's') + ' imported.');
+            } catch (err) { alert('That file could not be read as a changes file.'); }
+        };
+        rd.readAsText(f);
+    });
+    document.getElementById('resetAll').addEventListener('click', () => { if (Object.keys(edits).length && confirm('Remove all your edits and go back to the published settings?')) { edits = {}; commitEdits(); } });
+    document.getElementById('unitsCsv').addEventListener('click', () => download(`units-${APP.asOf}.csv`, [['Unit','Unit ID','Property','Category','Subcategory','Tag','Dave / Jessica','Region','Status','Onboarded','In Matrix',`${APP.year} revenue`]]
+        .concat(U.filter(unitFilter).map(u => [u.n, u.id, u.p, u.c, u.s, u.t, u.tm, u.rg, u.st, u.on, u.mx ? 'yes' : 'no', Math.round(yearRev(u) * 100) / 100]))));
 }
 function renderConfigTab() {
     const m = APP.matrix;
@@ -1038,7 +1152,7 @@ function renderConfigTab() {
           <tr><td>Streamline last synced</td><td class="r">${esc(APP.generated)}</td></tr><tr><td>Page built</td><td class="r">${esc(APP.pageUpdated)}</td></tr>
           <tr><td>Sales Master Matrix</td><td class="r">${m.loaded ? '<span class="pill ok">loaded</span>' : '<span class="pill warn">not loaded</span>'}</td></tr>
           <tr><td>Matrix rows / matched to a unit</td><td class="r">${m.loaded ? m.rows + ' / ' + m.matched : '—'}</td></tr>
-          <tr><td>Units on this page</td><td class="r">${U.length}</td></tr><tr><td>Revenue rule</td><td class="r">whole rent, in check-in month</td></tr></table></div></div>
+          <tr><td>Units on this page</td><td class="r">${U.length}</td></tr><tr><td>Published unit settings</td><td class="r">${APP.settingsCount || 0}</td></tr><tr><td>Edited in this browser</td><td class="r">${Object.keys(edits).length}</td></tr><tr><td>Revenue rule</td><td class="r">whole rent, in check-in month</td></tr></table></div></div>
       <div class="panel-card"><h3>Properties &amp; budgets</h3><table class="mini"><tr><th>Property</th><th>Category</th><th class="r">Units</th><th class="r">${APP.year} budget</th></tr>${propRows}</table></div>
       <div class="grid2">${tableCounts('Subcategories (restriction class)', 'sub')}<div>${tableCounts('Tags', 'tag')}${tableCounts('Dave / Jessica', 'team')}</div></div>`;
 }
@@ -1061,14 +1175,11 @@ function renderChecksTab() {
 }
 function renderDrawer() {
     const body = document.getElementById('drawerBody');
-    body.innerHTML = drawerTab === 'units' ? renderUnitsTab() : drawerTab === 'config' ? renderConfigTab() : renderChecksTab();
-    if (drawerTab === 'units') {
-        const q = document.getElementById('ufq');
-        q.addEventListener('input', () => { uf.q = q.value.trim().toLowerCase(); const pos = q.selectionStart; renderDrawer(); const n = document.getElementById('ufq'); n.focus(); n.setSelectionRange(pos, pos); });
-        body.querySelectorAll('select[data-uf]').forEach(s => s.addEventListener('change', () => { uf[s.dataset.uf] = s.value; renderDrawer(); }));
-        document.getElementById('unitsCsv').addEventListener('click', () => download(`units-${APP.asOf}.csv`, [['Unit','Unit ID','Property','Category','Subcategory','Tag','Dave / Jessica','Region','Status','Onboarded','In Matrix',`${APP.year} revenue`]]
-            .concat(U.filter(unitFilter).map(u => [u.n, u.id, u.p, u.c, u.s, u.t, u.tm, u.rg, u.st, u.on, u.mx ? 'yes' : 'no', Math.round(yearRev(u) * 100) / 100]))));
-    }
+    const wrap = body.querySelector('.units-wrap'), top = wrap ? wrap.scrollTop : 0;
+    const clone = body.cloneNode(false); body.parentNode.replaceChild(clone, body);          // drops old click handlers
+    const nb = document.getElementById('drawerBody');
+    nb.innerHTML = drawerTab === 'units' ? renderUnitsTab() : drawerTab === 'config' ? renderConfigTab() : renderChecksTab();
+    if (drawerTab === 'units') { wireUnitsTab(nb); const w = nb.querySelector('.units-wrap'); if (w) w.scrollTop = top; }
     if (drawerTab === 'config') {
         document.getElementById('prefRetired').addEventListener('change', e => { prefs.retired = e.target.checked; savePrefs(); render(); });
         document.getElementById('prefGroup').addEventListener('change', e => { prefs.group = e.target.value; savePrefs(); render(); });

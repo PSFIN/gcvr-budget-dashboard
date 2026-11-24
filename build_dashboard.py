@@ -145,7 +145,33 @@ def apply_unit_overrides(units, path, known_ids):
     return sorted(ids)
 
 
-def load_streamline(pacing_dir, overrides_path=None):
+def apply_unit_settings(units, path):
+    """Published unit settings (unit_settings.json): a changed property moves the unit for BOTH pages,
+    so the totals on Version 1 and Version 2 keep agreeing. Category, subcategory, tag, team and region
+    only matter to Version 2 (see unit_config.py)."""
+    try:
+        settings = unit_config.load_settings(path)
+    except ValueError as e:
+        sys.exit(str(e))
+    moved = 0
+    for uid, f in settings.items():
+        if "p" not in f:
+            continue
+        target = {"YCBR": "YCA"}.get(f["p"], f["p"])
+        if target not in units and target != unit_config.UNASSIGNED:
+            print(f"  !! WARNING: unit_settings.json sends unit {uid} to unknown property \"{f['p']}\"; ignored")
+            continue
+        for prop in units:
+            units[prop] = units[prop] - {uid}
+        if target in units:
+            units[target] = units[target] | {uid}
+        moved += 1
+    if settings:
+        print(f"  Settings: {len(settings)} unit(s) from {os.path.basename(path)} ({moved} moved to another property)")
+    return settings
+
+
+def load_streamline(pacing_dir, overrides_path=None, settings_path=None):
     """Returns (property -> set of unit ids, qualifying bookings, last_sync datetime)."""
     groups = {k: set(v) for k, v in json.load(open(os.path.join(pacing_dir, "custom_groups.json"))).items()}
     missing = [g for g in REQUIRED_GROUPS if g not in groups]
@@ -185,6 +211,7 @@ def load_streamline(pacing_dir, overrides_path=None):
         "Island Vacations": island,
     }
     apply_unit_overrides(units, overrides_path, known_ids)
+    apply_unit_settings(units, settings_path)
     return units, bookings, last_sync
 
 
@@ -542,16 +569,22 @@ def count_overrides(path):
         return 0
 
 
+def args_budgets_path(args):
+    return find_budgets(args.budgets)
+
+
 def build_v2_page(args, pacing_dir, units, bookings, budgets, today, generated, updated, overrides_path):
     """Returns (html, summary line). One row per unit: category, subcategory, tag, team, monthly revenue."""
     matrix_path = find_matrix(args.matrix)
+    settings_path = args.settings or os.path.join(os.path.dirname(args_budgets_path(args)), "unit_settings.json")
     rows, info = unit_config.build_units(pacing_dir, units, bookings, today.year,
-                                         today - timedelta(days=364), matrix_path)
+                                         today - timedelta(days=364), matrix_path,
+                                         unit_config.load_settings(settings_path))
     app = {
         "units": rows, "budgets": unit_config.budgets_for_page(budgets),
         "generated": generated, "pageUpdated": updated, "asOf": today.isoformat(),
         "year": today.year, "currentMonth": today.month, "v1Url": args.v1_url,
-        "overrides": count_overrides(overrides_path),
+        "overrides": count_overrides(overrides_path), "settingsCount": info["settingsApplied"],
         "matrix": {"loaded": info["matrixLoaded"], "rows": info["matrixRows"],
                    "matched": info["matrixMatched"], "unmatched": info["matrixUnmatched"]},
     }
@@ -570,6 +603,7 @@ def main():
     ap.add_argument("--pacing-dir")
     ap.add_argument("--budgets", help="private budgets_2026.json (default: server path, or next to this script)")
     ap.add_argument("--overrides", help="private unit_overrides.json (default: next to the budgets file)")
+    ap.add_argument("--settings", help="private unit_settings.json: published unit edits from Version 2 (default: next to the budgets file)")
     ap.add_argument("--template", default=os.path.join(HERE, "dashboard_template.html"))
     ap.add_argument("--v2-out", help="also build Version 2 and write it to this file (e.g. /var/www/budget/v2/index.html)")
     ap.add_argument("--v2-template", default=os.path.join(HERE, "dashboard_template_v2.html"))
@@ -598,7 +632,8 @@ def main():
     budgets = load_budgets(budgets_path)
     webhook_file = args.webhook_file or os.path.join(os.path.dirname(budgets_path), "teams_webhook.url")
     units, bookings, last_sync = load_streamline(
-        pacing_dir, args.overrides or os.path.join(os.path.dirname(budgets_path), "unit_overrides.json"))
+        pacing_dir, args.overrides or os.path.join(os.path.dirname(budgets_path), "unit_overrides.json"),
+        args.settings or os.path.join(os.path.dirname(budgets_path), "unit_settings.json"))
 
     print("=" * 66)
     print(f"  GCVR Budget Dashboard — Streamline  —  {today.month}/{today.day}/{today.year}")

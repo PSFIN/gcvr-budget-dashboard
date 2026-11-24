@@ -127,6 +127,28 @@ def tag_of(text):
     return "Luxury" if t.startswith("luxury") else ("Seasonal" if t.startswith("seasonal") else "")
 
 
+# ── Published unit settings (private file, applied for everyone) ───────────────
+SETTING_FIELDS = ("p", "c", "s", "t", "tm", "rg")
+
+
+def load_settings(path):
+    """Optional unit_settings.json: {"units": {"<unit id>": {"p": property, "c": category, "s": subcategory,
+    "t": tag, "tm": Dave/Jessica, "rg": region}}}. Only the fields present are changed. Returns {id: fields}."""
+    if not path or not os.path.exists(path):
+        return {}
+    try:
+        data = json.load(open(path))
+        raw = data.get("units") or {}
+        out = {}
+        for k, v in raw.items():
+            fields = {f: str(v[f]) for f in SETTING_FIELDS if f in v}
+            if fields:
+                out[int(k)] = fields
+        return out
+    except (ValueError, TypeError, AttributeError) as e:
+        raise ValueError(f"{path} is not valid ({e})")
+
+
 # ── Monthly revenue per unit (same rules as the property totals) ───────────────
 def unit_monthly(bookings, year, asof=None):
     """uid -> 12 monthly totals. Whole rent in the check-in month; 'asof' = created on/before it."""
@@ -139,7 +161,7 @@ def unit_monthly(bookings, year, asof=None):
 
 
 # ── The unit list ─────────────────────────────────────────────────────────────
-def build_units(pacing_dir, units_by_prop, bookings, year, ly_asof, matrix_path=None):
+def build_units(pacing_dir, units_by_prop, bookings, year, ly_asof, matrix_path=None, settings=None):
     """Returns (units, info). units = list of dicts for the page; info = counts for Settings."""
     con = sqlite3.connect(f"file:{os.path.join(pacing_dir, 'pacing.db')}?mode=ro", uri=True)
     active = {r[0]: r for r in con.execute(
@@ -195,18 +217,23 @@ def build_units(pacing_dir, units_by_prop, bookings, year, ly_asof, matrix_path=
         team = team_of(mgr) if m else ""
         if not team:
             team = "Dave" if uid in dave else "Jessica" if uid in jess else ""
-        out.append({
+        row = {
             "id": uid, "n": name, "p": prop, "c": cat, "s": sub, "t": tag, "tm": team,
             "rg": _col(m, "Region") if m else "", "on": _col(m, "Date Onboard") if m else "",
             "mx": 1 if m else 0, "pf": portfolio,
             "st": "Active" if is_active else "Retired",
             "a": [round(v, 2) for v in cur.get(uid, [0.0] * 12)],
             "l": [round(v, 2) for v in ly.get(uid, [0.0] * 12)],
-        })
+        }
+        if settings and uid in settings:                  # published settings win over everything computed above
+            row.update(settings[uid])
+            row["pub"] = 1
+        out.append(row)
     order = ["GBB", "Colony Inn", "Signal Inn", "YCBR", "Sandalfoot", "Island Vacations", "Non-Resort", UNASSIGNED]
     out.sort(key=lambda u: (order.index(u["p"]) if u["p"] in order else 99, u["n"].lower()))
     info = {"matrixLoaded": bool(matrix_rows), "matrixRows": len(matrix_rows),
             "matrixMatched": sum(1 for u in out if u["mx"]),
+            "settingsApplied": sum(1 for u in out if u.get("pub")),
             "matrixUnmatched": [_col(r, "Unit Name") for r in matrix_rows if id(r) not in mx.used][:40]}
     return out, info
 

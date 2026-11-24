@@ -134,6 +134,7 @@ The page keeps refreshing either way.
 | `history/` | `/home/ubuntu/budget-data/` | One small snapshot a day, for the week-over-week change |
 | `master_matrix.csv` | `/home/ubuntu/budget-data/` (optional) | The Sales Master Matrix exported as CSV. Gives Version 2 its subcategories (Restriction Class), tags and Dave/Jessica. Holds owner contracts: never in Git |
 | `enable_v2` | `/home/ubuntu/budget-data/` (optional marker file, empty) | While it exists, the daily refresh also builds Version 2 at `/v2/` |
+| `unit_settings.json` | `/home/ubuntu/budget-data/` (optional) | Unit settings published for everyone (property, category, subcategory, tag, Dave/Jessica, region), made from the "Download changes" file of Version 2. A changed property also moves the unit on Version 1, so both pages keep the same totals |
 
 ```json
 {"Sandalfoot": [12 numbers], "Signal Inn": [...], "GBB": [...], "YCA": [...],
@@ -154,6 +155,15 @@ by-month table and a **Settings** panel (every unit with its configuration, the 
 
 ```bash
 touch /home/ubuntu/budget-data/enable_v2 && /home/ubuntu/budget-dashboard/deploy/update.sh
+```
+
+- **Edit a unit:** Settings → Units → **Edit** (property, category, subcategory, tag, Dave / Jessica, region). The page
+  recalculates at once, and the change is kept **in that person's browser only** (a banner says so). Nobody else sees it.
+  To make agreed changes permanent for everyone: **Settings → Units → Download changes**, then merge the file's `units`
+  entries into `/home/ubuntu/budget-data/unit_settings.json` (same format) and refresh. Remove an entry to go back to the default.
+
+```json
+{"units": {"977199": {"p": "Island Vacations", "s": "7 Night Min Sat to Sat"}, "1153621": {"t": "Luxury", "tm": "Jessica"}}}
 ```
 
 - **Switch it off** (the next refresh also removes the published page): `rm /home/ubuntu/budget-data/enable_v2`.
