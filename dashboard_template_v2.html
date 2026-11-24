@@ -1047,7 +1047,7 @@ function tableCounts(title, key) {
 // ── Saving for everyone (needs the small settings service on the server; otherwise edits stay in this browser) ──
 const API = 'api/';
 const AUTH_KEY = 'gcvr_v2_auth';
-const shared = { enabled: false, version: null, stale: false };
+const shared = { enabled: false, needsCode: true, version: null, stale: false };
 let auth = { code: '', by: '' };
 try { auth = Object.assign(auth, JSON.parse(localStorage.getItem(AUTH_KEY) || '{}')); } catch (e) {}
 const saveAuth = () => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch (e) {} };
@@ -1064,7 +1064,7 @@ async function checkStatus() {
         if (!r.ok) throw new Error('no service');
         const d = await r.json();
         const was = shared.enabled;
-        shared.enabled = !!d.enabled; shared.version = d.version; shared.rebuilding = !!d.rebuilding;
+        shared.enabled = !!d.enabled; shared.needsCode = d.needsCode !== false; shared.version = d.version; shared.rebuilding = !!d.rebuilding;
         shared.stale = shared.enabled && d.version !== (APP.settingsVersion || 0) && !localChangeVersion.has(d.version);
         if (was !== shared.enabled || shared.stale) { renderBanner(); if (drawer.classList.contains('open') && drawerTab === 'units') renderDrawer(); }
         return d;
@@ -1072,6 +1072,10 @@ async function checkStatus() {
 }
 const localChangeVersion = new Set();                 // versions created by this very browser, so they do not trigger the "reload" notice
 function askAuth(force) {
+    if (!shared.needsCode) {                              // open editing: just a name for the change log, asked once
+        if (!auth.by) { auth.by = (prompt('Your name (shown in the change log):', '') || '').trim() || 'unknown'; saveAuth(); }
+        return true;
+    }
     if (!force && auth.code && auth.by) return true;
     const by = (prompt('Your name (shown in the change log):', auth.by || '') || '').trim();
     if (!by) return false;
@@ -1113,7 +1117,7 @@ function unitRow(u) {
 function renderUnitsTab() {
     const list = U.filter(unitFilter), nEd = Object.keys(edits).length;
     const bar = shared.enabled
-        ? `<div class="grow"><b style="color:var(--gulf-navy)">Edit a unit</b> with the Edit button (property, category, subcategory, tag, Dave / Jessica, region) and click <b>Save</b>: the change is saved <b>for everyone</b> and the dashboard updates itself in a few seconds. You will be asked once for your name and the edit code.</div>`
+        ? `<div class="grow"><b style="color:var(--gulf-navy)">Edit a unit</b> with the Edit button (property, category, subcategory, tag, Dave / Jessica, region) and click <b>Save</b>: the change is saved <b>for everyone</b> and the dashboard updates itself in a few seconds. ${shared.needsCode ? 'You will be asked once for your name and the edit code.' : 'You will be asked once for your name, which goes in the change log.'}</div>`
         : `<div class="grow"><b style="color:var(--gulf-navy)">Edit a unit</b> with the Edit button (property, category, subcategory, tag, Dave / Jessica, region). Saving for everyone is not set up yet, so your change updates this page and is kept <b>in this browser only</b>.</div>`;
     const localTools = (!shared.enabled || nEd) ? `<button class="icon-btn" type="button" id="dlChanges" ${nEd ? '' : 'disabled style="opacity:.5;cursor:default"'}>Download changes (${nEd})</button>
         <button class="icon-btn" type="button" id="impChanges">Import changes</button><input type="file" id="impFile" accept=".json,application/json" hidden>

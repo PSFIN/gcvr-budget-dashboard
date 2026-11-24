@@ -9,8 +9,10 @@ previous version and a log of who changed what, then rebuilds both pages.
   POST /v2/api/save     {"code", "by", "id", "changes": {p,c,s,t,tm,rg}}         (needs the edit code)
   POST /v2/api/reset    {"code", "by", "id"}   removes a unit's published settings (needs the edit code)
 
-The edit code is the single line in /home/ubuntu/budget-data/edit_code. Without that file editing is disabled and
-the page falls back to edits kept in the visitor's own browser. Nothing here touches Streamline or the budgets.
+Who may save: with the marker file /home/ubuntu/budget-data/open_edit anyone who can open the page may (a small team
+that shares the link); otherwise the single line in /home/ubuntu/budget-data/edit_code must be sent as "code". With
+neither file, editing is disabled and the page falls back to edits kept in the visitor's own browser.
+Every save is logged with the name and address. Nothing here touches Streamline or the budgets.
 """
 import fcntl
 import hmac
@@ -28,6 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 DATA = os.environ.get("DATA_DIR", "/home/ubuntu/budget-data")
 SETTINGS = os.path.join(DATA, "unit_settings.json")
 CODE_FILE = os.path.join(DATA, "edit_code")
+OPEN_FLAG = os.path.join(DATA, "open_edit")
 LOG_FILE = os.path.join(DATA, "unit_settings_log.jsonl")
 HISTORY = os.path.join(DATA, "settings_history")
 REBUILD = os.environ.get("REBUILD_CMD", "/home/ubuntu/budget-dashboard/deploy/rebuild.sh")
@@ -51,6 +54,10 @@ def read_code():
         return open(CODE_FILE).read().strip()
     except OSError:
         return ""
+
+
+def is_open():
+    return os.path.exists(OPEN_FLAG)
 
 
 def load():
@@ -179,7 +186,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.split("?")[0].rstrip("/").endswith("/api/status"):
             with _lock:
                 busy = _rb["dirty"] or _rb["running"]
-            return self.reply(200, {"ok": True, "enabled": bool(read_code()), "version": load()["version"], "rebuilding": busy})
+            return self.reply(200, {"ok": True, "enabled": bool(read_code()) or is_open(), "needsCode": not is_open(), "version": load()["version"], "rebuilding": busy})
         self.reply(404, {"ok": False, "error": "not found"})
 
     def do_POST(self):
@@ -187,7 +194,7 @@ class Handler(BaseHTTPRequestHandler):
         if route not in ("save", "reset"):
             return self.reply(404, {"ok": False, "error": "not found"})
         code = read_code()
-        if not code:
+        if not code and not is_open():
             return self.reply(503, {"ok": False, "error": "editing is not set up on the server"})
         try:
             n = int(self.headers.get("Content-Length", "0"))
@@ -196,7 +203,7 @@ class Handler(BaseHTTPRequestHandler):
             req = json.loads(self.rfile.read(n) or b"{}")
         except (ValueError, OSError):
             return self.reply(400, {"ok": False, "error": "could not read the request"})
-        if not hmac.compare_digest(str(req.get("code", "")).encode(), code.encode()):
+        if not is_open() and not hmac.compare_digest(str(req.get("code", "")).encode(), code.encode()):
             time.sleep(1)                                # slows down guessing
             return self.reply(403, {"ok": False, "error": "wrong edit code"})
         try:

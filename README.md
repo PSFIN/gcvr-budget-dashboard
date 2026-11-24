@@ -159,15 +159,16 @@ touch /home/ubuntu/budget-data/enable_v2 && /home/ubuntu/budget-dashboard/deploy
 
 - **Edit a unit:** Settings → Units → **Edit** (property, category, subcategory, tag, Dave / Jessica, region) → **Save**.
   The change is saved **for everyone** and both pages rebuild themselves within a few seconds. The first time, the
-  browser asks for a name (kept in the change log) and the **edit code** (the one line in
-  `/home/ubuntu/budget-data/edit_code`; viewing stays open, only saving needs the code). Others see the change on
+  browser asks once for a name (kept in the change log). By default no code is needed: the marker file
+  `/home/ubuntu/budget-data/open_edit` lets anyone with the link save (fine for a small team that shares it). To require a
+  code instead, delete `open_edit` and put a code on one line in `/home/ubuntu/budget-data/edit_code`. Others see the change on
   their next page load (a notice appears if a page was already open). Every save is logged in
   `/home/ubuntu/budget-data/unit_settings_log.jsonl` and the previous file is kept in `settings_history/`.
   **Remove** (on a unit that has saved settings) takes it back to the automatic values for everyone.
   Without the saving service, edits stay in the editor's browser only, with Download / Import changes as a fallback.
 - **How saving works:** `deploy/settings_api.py` (systemd service `budget-settings`, port 8010, localhost only) writes
   `unit_settings.json`, then runs `deploy/rebuild.sh` (no git pull, no Teams post). Caddy forwards `/v2/api/*` to it.
-  Restart it after a code change: `sudo systemctl restart budget-settings`. Change the edit code: write a new line to `edit_code`.
+  Restart it after a code change: `sudo systemctl restart budget-settings`. 
 
 ```json
 {"version": 3, "units": {"977199": {"p": "Island Vacations", "s": "7 Night Min Sat to Sat"}, "1153621": {"t": "Luxury", "tm": "Jessica"}}}
