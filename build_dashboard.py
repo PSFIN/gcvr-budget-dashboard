@@ -585,6 +585,7 @@ def build_v2_page(args, pacing_dir, units, bookings, budgets, today, generated, 
         "generated": generated, "pageUpdated": updated, "asOf": today.isoformat(),
         "year": today.year, "currentMonth": today.month, "v1Url": args.v1_url,
         "overrides": count_overrides(overrides_path), "settingsCount": info["settingsApplied"],
+        "settingsVersion": unit_config.settings_version(settings_path),
         "matrix": {"loaded": info["matrixLoaded"], "rows": info["matrixRows"],
                    "matched": info["matrixMatched"], "unmatched": info["matrixUnmatched"]},
     }

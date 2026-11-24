@@ -149,6 +149,14 @@ def load_settings(path):
         raise ValueError(f"{path} is not valid ({e})")
 
 
+def settings_version(path):
+    """The saving service counts every published change; the page compares it with the live value."""
+    try:
+        return int(json.load(open(path)).get("version", 0))
+    except (OSError, ValueError, TypeError, AttributeError):
+        return 0
+
+
 # ── Monthly revenue per unit (same rules as the property totals) ───────────────
 def unit_monthly(bookings, year, asof=None):
     """uid -> 12 monthly totals. Whole rent in the check-in month; 'asof' = created on/before it."""

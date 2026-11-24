@@ -157,13 +157,20 @@ by-month table and a **Settings** panel (every unit with its configuration, the 
 touch /home/ubuntu/budget-data/enable_v2 && /home/ubuntu/budget-dashboard/deploy/update.sh
 ```
 
-- **Edit a unit:** Settings → Units → **Edit** (property, category, subcategory, tag, Dave / Jessica, region). The page
-  recalculates at once, and the change is kept **in that person's browser only** (a banner says so). Nobody else sees it.
-  To make agreed changes permanent for everyone: **Settings → Units → Download changes**, then merge the file's `units`
-  entries into `/home/ubuntu/budget-data/unit_settings.json` (same format) and refresh. Remove an entry to go back to the default.
+- **Edit a unit:** Settings → Units → **Edit** (property, category, subcategory, tag, Dave / Jessica, region) → **Save**.
+  The change is saved **for everyone** and both pages rebuild themselves within a few seconds. The first time, the
+  browser asks for a name (kept in the change log) and the **edit code** (the one line in
+  `/home/ubuntu/budget-data/edit_code`; viewing stays open, only saving needs the code). Others see the change on
+  their next page load (a notice appears if a page was already open). Every save is logged in
+  `/home/ubuntu/budget-data/unit_settings_log.jsonl` and the previous file is kept in `settings_history/`.
+  **Remove** (on a unit that has saved settings) takes it back to the automatic values for everyone.
+  Without the saving service, edits stay in the editor's browser only, with Download / Import changes as a fallback.
+- **How saving works:** `deploy/settings_api.py` (systemd service `budget-settings`, port 8010, localhost only) writes
+  `unit_settings.json`, then runs `deploy/rebuild.sh` (no git pull, no Teams post). Caddy forwards `/v2/api/*` to it.
+  Restart it after a code change: `sudo systemctl restart budget-settings`. Change the edit code: write a new line to `edit_code`.
 
 ```json
-{"units": {"977199": {"p": "Island Vacations", "s": "7 Night Min Sat to Sat"}, "1153621": {"t": "Luxury", "tm": "Jessica"}}}
+{"version": 3, "units": {"977199": {"p": "Island Vacations", "s": "7 Night Min Sat to Sat"}, "1153621": {"t": "Luxury", "tm": "Jessica"}}}
 ```
 
 - **Switch it off** (the next refresh also removes the published page): `rm /home/ubuntu/budget-data/enable_v2`.

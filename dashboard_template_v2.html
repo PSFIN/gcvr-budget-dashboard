@@ -644,6 +644,9 @@ th .arr { opacity:.6; margin-left:3px; }
 .toggle-row:last-child { border-bottom:0; }
 .toggle-row b { color:var(--gulf-navy); font-size:.9rem; }
 .toggle-row span { display:block; color:var(--text-muted); font-size:.8rem; }
+.toast { position:fixed; left:50%; bottom:28px; transform:translate(-50%,20px); z-index:200; max-width:min(560px,92vw); padding:12px 18px; border-radius:12px; background:var(--gulf-navy); color:#fff; font:600 .85rem var(--font-sans); box-shadow:0 12px 30px rgba(15,42,74,.3); opacity:0; pointer-events:none; transition:all .3s; }
+.toast.show { opacity:1; transform:translate(-50%,0); }
+.toast.err { background:var(--coral-rose); }
 .link-btn { border:0; background:none; color:var(--gulf-gold-hover); font:700 .75rem var(--font-sans); cursor:pointer; padding:0 4px; }
 .link-btn:hover { text-decoration:underline; }
 .units-wrap select { padding:5px 6px; border:1px solid var(--border-sand); border-radius:8px; background:var(--card-white); font:500 .78rem var(--font-sans); color:var(--text-navy); max-width:170px; }
@@ -981,6 +984,7 @@ function renderMonths(sel, idx) {
 function renderBanner() {
     const m = APP.matrix, el = document.getElementById('banner'), n = Object.keys(edits).length;
     let html = !m.loaded ? '<div class="note-banner"><b>Subcategories are not loaded.</b> The Sales Master Matrix has not been added to the server yet, so units show “(not set)” for subcategory, tag and team fall back to Streamline and KeyData.</div>' : '';
+    if (shared.stale) html += `<div class="note-banner"><b>Newer settings were published.</b> Someone saved a change since this page opened. <button type="button" class="link-btn" onclick="location.reload()">Reload to see it</button></div>`;
     if (n) html += `<div class="note-banner"><b>${n} unit${n > 1 ? 's' : ''} edited in this browser.</b> The numbers and filters below use your edits; other people do not see them. <button type="button" class="link-btn" id="bnReview">Review in Settings</button> · <button type="button" class="link-btn" id="bnReset">Reset all</button></div>`;
     el.innerHTML = html;
     const r = document.getElementById('bnReview'); if (r) r.addEventListener('click', () => { drawerTab = 'units'; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'units')); openDrawer(); });
@@ -1040,6 +1044,50 @@ function tableCounts(title, key) {
     const rows = optionValues[key].map(([v]) => `<tr><td>${esc(v)}</td><td class="r">${c[v].n}</td><td class="r">${fmt(c[v].r)}</td></tr>`).join('');
     return `<div class="panel-card"><h3>${title}</h3><table class="mini"><tr><th>Value</th><th class="r">Units</th><th class="r">${APP.year} revenue</th></tr>${rows}</table></div>`;
 }
+// ── Saving for everyone (needs the small settings service on the server; otherwise edits stay in this browser) ──
+const API = 'api/';
+const AUTH_KEY = 'gcvr_v2_auth';
+const shared = { enabled: false, version: null, stale: false };
+let auth = { code: '', by: '' };
+try { auth = Object.assign(auth, JSON.parse(localStorage.getItem(AUTH_KEY) || '{}')); } catch (e) {}
+const saveAuth = () => { try { localStorage.setItem(AUTH_KEY, JSON.stringify(auth)); } catch (e) {} };
+let toastTimer = null;
+function toast(msg, isErr) {
+    let t = document.getElementById('toast');
+    if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+    t.textContent = msg; t.classList.toggle('err', !!isErr); t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), isErr ? 6000 : 3800);
+}
+async function checkStatus() {
+    try {
+        const r = await fetch(API + 'status', { cache: 'no-store' });
+        if (!r.ok) throw new Error('no service');
+        const d = await r.json();
+        const was = shared.enabled;
+        shared.enabled = !!d.enabled; shared.version = d.version; shared.rebuilding = !!d.rebuilding;
+        shared.stale = shared.enabled && d.version !== (APP.settingsVersion || 0) && !localChangeVersion.has(d.version);
+        if (was !== shared.enabled || shared.stale) { renderBanner(); if (drawer.classList.contains('open') && drawerTab === 'units') renderDrawer(); }
+        return d;
+    } catch (e) { shared.enabled = false; return null; }
+}
+const localChangeVersion = new Set();                 // versions created by this very browser, so they do not trigger the "reload" notice
+function askAuth(force) {
+    if (!force && auth.code && auth.by) return true;
+    const by = (prompt('Your name (shown in the change log):', auth.by || '') || '').trim();
+    if (!by) return false;
+    const code = (prompt('Edit code (ask the dashboard owner if you do not have it):', '') || '').trim();
+    if (!code) return false;
+    auth = { by, code }; saveAuth(); return true;
+}
+async function post(route, body) {
+    const r = await fetch(API + route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ code: auth.code, by: auth.by }, body)) });
+    let d = {}; try { d = await r.json(); } catch (e) {}
+    return { status: r.status, data: d };
+}
+async function waitForRebuild(maxSeconds) {
+    for (let i = 0; i < maxSeconds / 1.5; i++) { await new Promise(r => setTimeout(r, 1500)); const d = await checkStatus(); if (d && !d.rebuilding) return true; }
+    return false;
+}
 let editingId = null;
 const withCur = (vals, cur) => (cur !== '' && !vals.some(x => x[0] === cur)) ? vals.concat([[cur, cur]]) : vals;
 const optHtml = (id, cur, vals) => `<select id="${id}">${withCur(vals, cur).map(([v, l]) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
@@ -1060,15 +1108,17 @@ function unitRow(u) {
     }
     const pill = u.ed ? ' <span class="pill" title="Edited in this browser">edited</span>' : (u.pub ? ' <span class="pill ok" title="Published setting">set</span>' : '');
     return `<tr><td class="text-left unit-name">${esc(u.n)}${pill}</td><td>${u.id}</td><td class="text-left">${esc(u.p)}</td><td class="text-left">${esc(u.c)}</td><td class="text-left">${esc(u.s || NONE_SUB)}</td><td class="text-left">${esc(u.t || '—')}</td><td class="text-left">${esc(u.tm || '—')}</td><td class="text-left">${esc(u.rg || '—')}</td>${status}${tail}
-      <td class="text-left" style="white-space:nowrap"><button class="link-btn" type="button" data-edit="${u.id}">Edit</button>${u.ed ? `<button class="link-btn" type="button" data-reset="${u.id}">Reset</button>` : ''}</td></tr>`;
+      <td class="text-left" style="white-space:nowrap"><button class="link-btn" type="button" data-edit="${u.id}">Edit</button>${u.ed ? `<button class="link-btn" type="button" data-reset="${u.id}">Reset</button>` : ''}${u.pub && shared.enabled ? `<button class="link-btn" type="button" data-unpublish="${u.id}" title="Remove the saved settings for everyone">Remove</button>` : ''}</td></tr>`;
 }
 function renderUnitsTab() {
     const list = U.filter(unitFilter), nEd = Object.keys(edits).length;
-    return `<div class="edit-bar"><div class="grow"><b style="color:var(--gulf-navy)">Edit a unit</b> with the Edit button: property, category, subcategory, tag, Dave / Jessica and region. Your change updates the page straight away and is saved in this browser only.
-        To make agreed changes permanent for everyone, download them and send the file to be published.</div>
-        <button class="icon-btn" type="button" id="dlChanges" ${nEd ? '' : 'disabled style="opacity:.5;cursor:default"'}>Download changes (${nEd})</button>
+    const bar = shared.enabled
+        ? `<div class="grow"><b style="color:var(--gulf-navy)">Edit a unit</b> with the Edit button (property, category, subcategory, tag, Dave / Jessica, region) and click <b>Save</b>: the change is saved <b>for everyone</b> and the dashboard updates itself in a few seconds. You will be asked once for your name and the edit code.</div>`
+        : `<div class="grow"><b style="color:var(--gulf-navy)">Edit a unit</b> with the Edit button (property, category, subcategory, tag, Dave / Jessica, region). Saving for everyone is not set up yet, so your change updates this page and is kept <b>in this browser only</b>.</div>`;
+    const localTools = (!shared.enabled || nEd) ? `<button class="icon-btn" type="button" id="dlChanges" ${nEd ? '' : 'disabled style="opacity:.5;cursor:default"'}>Download changes (${nEd})</button>
         <button class="icon-btn" type="button" id="impChanges">Import changes</button><input type="file" id="impFile" accept=".json,application/json" hidden>
-        <button class="icon-btn" type="button" id="resetAll" ${nEd ? '' : 'disabled style="opacity:.5;cursor:default"'}>Reset all</button></div>
+        <button class="icon-btn" type="button" id="resetAll" ${nEd ? '' : 'disabled style="opacity:.5;cursor:default"'}>Reset all</button>` : '';
+    return `<div class="edit-bar">${bar}${localTools}</div>
       <div class="toolbar">
         <input type="search" id="ufq" placeholder="Search unit name or ID" value="${esc(uf.q)}">
         ${selHtml('prop', 'Property', optionValues.prop.map(x => x[0]))}${selHtml('cat', 'Category', optionValues.cat.map(x => x[0]))}${selHtml('sub', 'Subcategory', optionValues.sub.map(x => x[0]))}
@@ -1077,14 +1127,41 @@ function renderUnitsTab() {
         <button class="icon-btn" type="button" id="unitsCsv" style="margin-left:auto">Download units CSV</button></div>
       <div class="units-wrap"><table><thead><tr><th class="text-left">Unit</th><th>ID</th><th class="text-left">Property</th><th class="text-left">Category</th><th class="text-left">Subcategory</th><th class="text-left">Tag</th><th class="text-left">Dave / Jessica</th><th class="text-left">Region</th><th class="text-left">Status</th><th class="text-left">Onboarded</th><th>In Matrix</th><th>${APP.year} revenue</th><th></th></tr></thead><tbody>${list.map(unitRow).join('')}</tbody></table></div>`;
 }
-function saveRow(id) {
+async function saveRow(id) {
     const u = U.find(x => x.id === id); if (!u) return;
     const val = k => document.getElementById('ed_' + k).value;
     const next = { p: val('p'), c: val('c'), s: val('s'), t: val('t'), tm: val('tm'), rg: val('rg') };
     const e = {};
     EDIT_FIELDS.forEach(f => { if (next[f] !== u._o[f]) e[f] = next[f]; });
-    if (Object.keys(e).length) edits[id] = e; else delete edits[id];
-    editingId = null; commitEdits();
+    if (!Object.keys(e).length) { delete edits[id]; editingId = null; commitEdits(); return; }
+    if (shared.enabled) {
+        if (!askAuth(false)) return;                                    // cancelled: stay in edit mode
+        try {
+            const r = await post('save', { id, changes: e });
+            if (r.status === 403) { auth.code = ''; saveAuth(); toast('That edit code is not right. Please try again.', true); return; }
+            if (r.status === 200 && r.data.ok) {
+                localChangeVersion.add(r.data.version);
+                EDIT_FIELDS.forEach(f => { if (f in e) u._o[f] = e[f]; });           // now the published value
+                u.pub = 1; delete edits[id]; editingId = null; commitEdits();
+                toast('Saved for everyone. The dashboard is updating…');
+                waitForRebuild(60).then(ok => { if (ok) toast('Updated: everyone now sees this change.'); });
+                return;
+            }
+            toast((r.data && r.data.error) || 'The change could not be saved.', true); return;
+        } catch (err) { toast('Could not reach the server. Saved in this browser only.', true); }
+    }
+    edits[id] = e; editingId = null; commitEdits();
+}
+async function unpublish(id) {
+    const u = U.find(x => x.id === id);
+    if (!u || !confirm(`Remove the saved settings for ${u.n} for everyone? It goes back to the automatic values.`)) return;
+    if (!askAuth(false)) return;
+    try {
+        const r = await post('reset', { id });
+        if (r.status === 403) { auth.code = ''; saveAuth(); toast('That edit code is not right.', true); return; }
+        if (r.status === 200 && r.data.ok) { toast('Removed. Updating the dashboard…'); await waitForRebuild(60); location.reload(); return; }
+        toast((r.data && r.data.error) || 'Could not remove it.', true);
+    } catch (err) { toast('Could not reach the server.', true); }
 }
 function wireUnitsTab(body) {
     const q = document.getElementById('ufq');
@@ -1096,6 +1173,7 @@ function wireUnitsTab(body) {
         else if (t.dataset.cancel) { editingId = null; renderDrawer(); }
         else if (t.dataset.save) saveRow(Number(t.dataset.save));
         else if (t.dataset.reset) { delete edits[Number(t.dataset.reset)]; commitEdits(); }
+        else if (t.dataset.unpublish) unpublish(Number(t.dataset.unpublish));
     });
     const p = document.getElementById('ed_p');
     if (p) p.addEventListener('change', () => { const c = propCat(p.value); if (c) document.getElementById('ed_c').value = c; });
@@ -1106,14 +1184,14 @@ function wireUnitsTab(body) {
         if (!name) { sb.value = ''; return; }
         const o = document.createElement('option'); o.value = name; o.textContent = name; sb.insertBefore(o, sb.querySelector('option[value="__new__"]')); sb.value = name;
     });
-    document.getElementById('dlChanges').addEventListener('click', () => {
+    const dl = document.getElementById('dlChanges'); if (dl) dl.addEventListener('click', () => {
         const units = {};
         Object.keys(edits).forEach(id => { const u = U.find(x => String(x.id) === id); units[id] = Object.assign({ n: u ? u.n : '' }, edits[id]); });
         const blob = new Blob([JSON.stringify({ note: 'Unit settings edited in Performance Dashboard Version 2. Send this file to be published.', created: new Date().toISOString().slice(0, 10), units }, null, 1)], { type: 'application/json' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `unit-changes-${APP.asOf}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
     });
-    document.getElementById('impChanges').addEventListener('click', () => document.getElementById('impFile').click());
-    document.getElementById('impFile').addEventListener('change', ev => {
+    const imb = document.getElementById('impChanges'); if (imb) imb.addEventListener('click', () => document.getElementById('impFile').click());
+    const imf = document.getElementById('impFile'); if (imf) imf.addEventListener('change', ev => {
         const f = ev.target.files[0]; if (!f) return;
         const rd = new FileReader();
         rd.onload = () => {
@@ -1129,7 +1207,7 @@ function wireUnitsTab(body) {
         };
         rd.readAsText(f);
     });
-    document.getElementById('resetAll').addEventListener('click', () => { if (Object.keys(edits).length && confirm('Remove all your edits and go back to the published settings?')) { edits = {}; commitEdits(); } });
+    const rsa = document.getElementById('resetAll'); if (rsa) rsa.addEventListener('click', () => { if (Object.keys(edits).length && confirm('Remove all your edits and go back to the published settings?')) { edits = {}; commitEdits(); } });
     document.getElementById('unitsCsv').addEventListener('click', () => download(`units-${APP.asOf}.csv`, [['Unit','Unit ID','Property','Category','Subcategory','Tag','Dave / Jessica','Region','Status','Onboarded','In Matrix',`${APP.year} revenue`]]
         .concat(U.filter(unitFilter).map(u => [u.n, u.id, u.p, u.c, u.s, u.t, u.tm, u.rg, u.st, u.on, u.mx ? 'yes' : 'no', Math.round(yearRev(u) * 100) / 100]))));
 }
@@ -1152,7 +1230,7 @@ function renderConfigTab() {
           <tr><td>Streamline last synced</td><td class="r">${esc(APP.generated)}</td></tr><tr><td>Page built</td><td class="r">${esc(APP.pageUpdated)}</td></tr>
           <tr><td>Sales Master Matrix</td><td class="r">${m.loaded ? '<span class="pill ok">loaded</span>' : '<span class="pill warn">not loaded</span>'}</td></tr>
           <tr><td>Matrix rows / matched to a unit</td><td class="r">${m.loaded ? m.rows + ' / ' + m.matched : '—'}</td></tr>
-          <tr><td>Units on this page</td><td class="r">${U.length}</td></tr><tr><td>Published unit settings</td><td class="r">${APP.settingsCount || 0}</td></tr><tr><td>Edited in this browser</td><td class="r">${Object.keys(edits).length}</td></tr><tr><td>Revenue rule</td><td class="r">whole rent, in check-in month</td></tr></table></div></div>
+          <tr><td>Units on this page</td><td class="r">${U.length}</td></tr><tr><td>Published unit settings</td><td class="r">${APP.settingsCount || 0}</td></tr><tr><td>Edited in this browser</td><td class="r">${Object.keys(edits).length}</td></tr><tr><td>Saving for everyone</td><td class="r">${shared.enabled ? '<span class="pill ok">on</span>' : '<span class="pill warn">off (this browser only)</span>'}</td></tr><tr><td>Revenue rule</td><td class="r">whole rent, in check-in month</td></tr></table></div></div>
       <div class="panel-card"><h3>Properties &amp; budgets</h3><table class="mini"><tr><th>Property</th><th>Category</th><th class="r">Units</th><th class="r">${APP.year} budget</th></tr>${propRows}</table></div>
       <div class="grid2">${tableCounts('Subcategories (restriction class)', 'sub')}<div>${tableCounts('Tags', 'tag')}${tableCounts('Dave / Jessica', 'team')}</div></div>`;
 }
@@ -1192,6 +1270,8 @@ function renderDrawer() {
 
 buildFilters();
 render();
+checkStatus();
+setInterval(checkStatus, 60000);
 </script>
 </body>
 </html>
