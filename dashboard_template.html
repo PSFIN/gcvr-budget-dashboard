@@ -575,6 +575,16 @@
         }
         #msBackdrop.show { opacity: 1; }
 
+        /* Link to Version 2 (shown only when the build turns Version 2 on) */
+        .v2-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 16px; border: 1px solid var(--gulf-gold); border-radius: 10px;
+            color: var(--gulf-gold-hover); background: var(--card-white);
+            font: 700 0.8rem var(--font-sans); text-decoration: none; transition: var(--transition);
+        }
+        .v2-link:hover { background: var(--gulf-gold); color: #fff; }
+        .v2-link[hidden] { display: none; }
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
                 animation: none !important;
@@ -660,6 +670,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 Export CSV
             </button>
+            <a class="v2-link" id="v2Link" href="#" target="_blank" rel="noopener" hidden>Version 2 &#8599;</a>
         </div>
     </header>
 
@@ -721,6 +732,8 @@ const CURRENT_MONTH = 10;
 const GENERATED = "10/8/2026 2:41 PM";      // when Streamline last synced
 const PAGE_UPDATED = "";                      // when this page was built (filled in by build_dashboard.py)
 const AS_OF_DATE = "2026-10-15";   // ISO date used for weeks-left math below
+const V2_URL = "";                            // address of Version 2 (filled in by build_dashboard.py; empty = no link)
+if (V2_URL) { const a = document.getElementById('v2Link'); a.setAttribute('href', V2_URL); a.hidden = false; }
 
 const rawData = [
     {

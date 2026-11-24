@@ -30,7 +30,16 @@ main() {
     # FORCE_NOTIFY=1 posts right now, whatever the day.
     local notify_args=(--notify "${NOTIFY:-monday}")
     if [ -n "${FORCE_NOTIFY:-}" ]; then notify_args+=(--force-notify); fi
-    python3 build_dashboard.py --out "$WEB_ROOT/index.html" "${notify_args[@]}"
+    # Version 2 (Category / Subcategory page at /v2/) shows unit-level revenue, so it is opt-in:
+    # it is built only while the marker file exists. Turn on: touch /home/ubuntu/budget-data/enable_v2
+    # Turn off: rm /home/ubuntu/budget-data/enable_v2 (the next refresh also removes the published /v2/ page).
+    local v2_args=()
+    if [ -e "${V2_FLAG:-/home/ubuntu/budget-data/enable_v2}" ]; then
+        v2_args+=(--v2-out "$WEB_ROOT/v2/index.html")
+    else
+        rm -rf "$WEB_ROOT/v2"
+    fi
+    python3 build_dashboard.py --out "$WEB_ROOT/index.html" "${notify_args[@]}" ${v2_args[@]+"${v2_args[@]}"}
 }
 
 main "$@"

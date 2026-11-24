@@ -53,6 +53,13 @@ Usage:
 Options: --pacing-dir DIR, --budgets FILE, --template FILE, --out FILE, --today YYYY-MM-DD,
          --max-age-hours N, --notify off|monday|daily, --force-notify, --history-dir DIR,
          --webhook-file FILE
+
+Version 2 (a second page with Category / Subcategory filters and a Settings panel):
+  python3 build_dashboard.py --out /var/www/budget/index.html --v2-out /var/www/budget/v2/index.html
+  Builds the new page next to the current one and adds a "Version 2" link to the current page's
+  header. Without --v2-out nothing changes. Subcategories come from the private Sales Master
+  Matrix (--matrix FILE, default /home/ubuntu/budget-data/master_matrix.csv, never in Git).
+  See unit_config.py for how a unit's category, subcategory, tag and team are decided.
 """
 import argparse
 import csv
@@ -65,6 +72,8 @@ import urllib.error
 import urllib.request
 from collections import defaultdict
 from datetime import date, datetime, timedelta
+
+import unit_config
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BLOCK_TYPES = {"OWN", "ABL", "MaintenanceBlock"}
@@ -251,7 +260,7 @@ def js_name(prop):
     return JS_NAMES.get(prop, prop)
 
 
-def patch_dashboard(html, budgets, current, last_year, today, generated, updated):
+def patch_dashboard(html, budgets, current, last_year, today, generated, updated, v2_url=""):
     for prop in PROPERTY_ORDER:
         for key, vals in (("goals", budgets[prop]), ("actuals", current[prop]), ("lastYear", last_year[prop])):
             pattern = re.compile(r'(unit:\s*"' + re.escape(js_name(prop)) + r'".*?' + key + r':\s*)\[[^\]]*\]', re.S)
@@ -262,7 +271,8 @@ def patch_dashboard(html, budgets, current, last_year, today, generated, updated
             (r'const GENERATED\s*=\s*"[^"]*"', f'const GENERATED = "{generated}"'),
             (r'const PAGE_UPDATED\s*=\s*"[^"]*"', f'const PAGE_UPDATED = "{updated}"'),
             (r'const CURRENT_MONTH\s*=\s*\d+', f'const CURRENT_MONTH = {today.month}'),
-            (r'const AS_OF_DATE\s*=\s*"[^"]*"', f'const AS_OF_DATE = "{today.isoformat()}"')):
+            (r'const AS_OF_DATE\s*=\s*"[^"]*"', f'const AS_OF_DATE = "{today.isoformat()}"'),
+            (r'const V2_URL\s*=\s*"[^"]*"', f'const V2_URL = "{v2_url}"')):
         html, n = re.subn(pattern, replacement, html)
         if n != 1:
             sys.exit(f"Template is missing {pattern.split()[1]} — nothing written.")
@@ -515,6 +525,45 @@ def notify_teams(args, today, rows, data_as_of, bookings, units, budgets, histor
             json.dump({"last": today.isoformat()}, f)
 
 
+# ── Version 2 page ────────────────────────────────────────────────────────────
+def find_matrix(arg):
+    """The private Sales Master Matrix (CSV). Optional: Version 2 works without it."""
+    for c in (arg, os.environ.get("MATRIX_FILE"), "/home/ubuntu/budget-data/master_matrix.csv",
+              os.path.join(HERE, "master_matrix.csv")):
+        if c and os.path.exists(c):
+            return c
+    return None
+
+
+def count_overrides(path):
+    try:
+        return len(json.load(open(path)).get("non_resort_add", []))
+    except (OSError, ValueError, AttributeError):
+        return 0
+
+
+def build_v2_page(args, pacing_dir, units, bookings, budgets, today, generated, updated, overrides_path):
+    """Returns (html, summary line). One row per unit: category, subcategory, tag, team, monthly revenue."""
+    matrix_path = find_matrix(args.matrix)
+    rows, info = unit_config.build_units(pacing_dir, units, bookings, today.year,
+                                         today - timedelta(days=364), matrix_path)
+    app = {
+        "units": rows, "budgets": unit_config.budgets_for_page(budgets),
+        "generated": generated, "pageUpdated": updated, "asOf": today.isoformat(),
+        "year": today.year, "currentMonth": today.month, "v1Url": args.v1_url,
+        "overrides": count_overrides(overrides_path),
+        "matrix": {"loaded": info["matrixLoaded"], "rows": info["matrixRows"],
+                   "matched": info["matrixMatched"], "unmatched": info["matrixUnmatched"]},
+    }
+    html = open(args.v2_template).read()
+    if html.count("__APP_DATA__") != 1:
+        raise ValueError("the Version 2 template must contain __APP_DATA__ exactly once")
+    html = html.replace("__APP_DATA__", unit_config.js_json(app))
+    where = f"Matrix {os.path.basename(matrix_path)}: {info['matrixMatched']} of {len(rows)} units matched" \
+        if matrix_path else "no Sales Master Matrix found: subcategories will be empty"
+    return html, f"{len(rows)} units; {where}"
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -522,6 +571,11 @@ def main():
     ap.add_argument("--budgets", help="private budgets_2026.json (default: server path, or next to this script)")
     ap.add_argument("--overrides", help="private unit_overrides.json (default: next to the budgets file)")
     ap.add_argument("--template", default=os.path.join(HERE, "dashboard_template.html"))
+    ap.add_argument("--v2-out", help="also build Version 2 and write it to this file (e.g. /var/www/budget/v2/index.html)")
+    ap.add_argument("--v2-template", default=os.path.join(HERE, "dashboard_template_v2.html"))
+    ap.add_argument("--v2-url", default="v2/", help="where Version 1 links to Version 2 (default: v2/)")
+    ap.add_argument("--v1-url", default="../", help="where Version 2 links back to Version 1 (default: ../)")
+    ap.add_argument("--matrix", help="private Sales Master Matrix CSV (default: /home/ubuntu/budget-data/master_matrix.csv)")
     ap.add_argument("--out", default=os.path.join(HERE, "dashboard.preview.html"),
                     help="where to write the finished page (default: dashboard.preview.html, git-ignored)")
     ap.add_argument("--today", help="YYYY-MM-DD, for testing")
@@ -573,7 +627,17 @@ def main():
     stamp = "%-m/%-d/%Y %-I:%M %p"
     generated = (last_sync or datetime.now()).strftime(stamp)       # when Streamline last synced
     updated = datetime.now().strftime(stamp)                          # when this page is built
-    html = patch_dashboard(html, budgets, current, last_year, today, generated, updated)
+    v2_html = None
+    if args.v2_out:
+        overrides_path = args.overrides or os.path.join(os.path.dirname(budgets_path), "unit_overrides.json")
+        try:
+            v2_html, v2_note = build_v2_page(args, pacing_dir, units, bookings, budgets, today, generated, updated,
+                                             overrides_path)
+            print(f"  Version 2: {v2_note}")
+        except Exception as e:                       # Version 1 must never depend on Version 2
+            print(f"  !! Version 2 skipped: {e}")
+    html = patch_dashboard(html, budgets, current, last_year, today, generated, updated,
+                           v2_url=args.v2_url if v2_html else "")
 
     print_summary(budgets, current, today)
 
@@ -594,6 +658,10 @@ def main():
     target = args.out
     write_atomic(target, html)
     print(f"\n  Dashboard written: {target}")
+    if v2_html:
+        os.makedirs(os.path.dirname(os.path.abspath(args.v2_out)), exist_ok=True)
+        write_atomic(args.v2_out, v2_html)
+        print(f"  Version 2 written: {args.v2_out}")
     if args.history_dir:
         save_snapshot(args.history_dir, today, rows, generated)
     notify_teams(args, today, rows, generated, bookings, units, budgets, args.history_dir, webhook_file,

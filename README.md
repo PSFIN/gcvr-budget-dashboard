@@ -132,11 +132,34 @@ The page keeps refreshing either way.
 | `unit_overrides.json` | `/home/ubuntu/budget-data/` (optional) | Units forced into Non-Resort: `{"non_resort_add": [unit ids]}`. They are taken out of every other property, so a unit that also sits in the Island Vacations group is not counted twice. For new onboards missing from the pacing project's groups |
 | `teams_webhook.url` | `/home/ubuntu/budget-data/` | The Teams webhook address |
 | `history/` | `/home/ubuntu/budget-data/` | One small snapshot a day, for the week-over-week change |
+| `master_matrix.csv` | `/home/ubuntu/budget-data/` (optional) | The Sales Master Matrix exported as CSV. Gives Version 2 its subcategories (Restriction Class), tags and Dave/Jessica. Holds owner contracts: never in Git |
+| `enable_v2` | `/home/ubuntu/budget-data/` (optional marker file, empty) | While it exists, the daily refresh also builds Version 2 at `/v2/` |
 
 ```json
 {"Sandalfoot": [12 numbers], "Signal Inn": [...], "GBB": [...], "YCA": [...],
  "Colony Inn": [...], "Non-Resort": [...], "Island Vacations": [...]}
 ```
+
+## Version 2 (Category / Subcategory view)
+
+A second page next to the current one, at `/v2/`. The current page is not changed; when Version 2 is on,
+its header shows a **Version 2 ↗** link that opens it in a new tab. Version 2 adds Category, Property,
+Subcategory, Tag and Dave/Jessica filters, a breakdown you can group by any of them (or by unit), a
+by-month table and a **Settings** panel (every unit with its configuration, the rules, data checks).
+
+- **Category** is Resort or Non-Resort. **Subcategory** is the Master Matrix "Restriction Class". **Tag** is
+  Luxury or Seasonal. How each is decided is in `unit_config.py`.
+- Budgets exist only per property, so Target and Variance show only when Subcategory, Tag and Team are all selected.
+- It shows unit-level revenue, so it is **off until you switch it on** (it is public like the current page):
+
+```bash
+touch /home/ubuntu/budget-data/enable_v2 && /home/ubuntu/budget-dashboard/deploy/update.sh
+```
+
+- **Switch it off** (the next refresh also removes the published page): `rm /home/ubuntu/budget-data/enable_v2`.
+- **Update the Matrix:** export the Master Matrix sheet as CSV and copy it to the server as
+  `/home/ubuntu/budget-data/master_matrix.csv` (owner-only permissions), then refresh. Units are matched
+  to the Matrix by name; the Settings panel, tab "Data checks", lists the ones that did not match.
 
 ## Everyday tasks
 

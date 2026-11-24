@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>GCVR 2026 Performance Dashboard · Version 2</title>
+
+    <!-- Same fonts and look as Version 1 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* ChooseGulfCoast.com Coastal Color System */
+            --gulf-navy: #0f2a4a;         /* Deep Blue */
+            --gulf-gold: #c5a059;         /* Siesta Key Sand Gold */
+            --gulf-gold-hover: #b48e47;
+            --gulf-teal: #2e7078;         /* Gulf Watery Teal */
+            --gulf-teal-light: #e3f4f1;
+
+            --coral-rose: #be4d4d;        /* Coastal Sunset Red */
+            --coral-rose-light: #fdf2f2;
+
+            --bg-sand: #FAF9F6;           /* White Sand Beach Background */
+            --card-white: #ffffff;
+            --border-sand: #e6e2da;       /* Warm Soft Border */
+            --border-light: #f5f2eb;
+
+            --text-navy: #0f2a4a;
+            --text-muted: #626b75;
+            --text-light: #a3acb5;
+
+            --font-display: 'Montserrat', sans-serif;
+            --font-serif: 'Lora', serif;
+            --font-sans: 'Inter', sans-serif;
+
+            --shadow: 0 10px 30px -10px rgba(15, 42, 74, 0.04), 0 1px 3px rgba(15, 42, 74, 0.02);
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-sand);
+            color: var(--text-navy);
+            margin: 0;
+            padding: 40px 24px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Coastal Brand Header styling */
+        header {
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border-sand);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+
+        .brand-eyebrow {
+            font-family: var(--font-display);
+            font-size: 0.72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--gulf-gold);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .live-pulse {
+            width: 7px;
+            height: 7px;
+            background-color: var(--gulf-teal);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 2px rgba(46, 112, 120, 0.25);
+            animation: pulse-glow 2s infinite;
+        }
+
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(46, 112, 120, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(46, 112, 120, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 112, 120, 0); }
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-family: var(--font-serif);
+            font-size: 2.15rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: var(--gulf-navy);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin: 6px 0 0 0;
+            font-size: 0.95rem;
+            font-weight: 400;
+        }
+
+        /* Custom Dropdowns */
+        .controls {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filter-group label {
+            font-family: var(--font-display);
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+
+        /* Multi-select checkbox dropdowns */
+        .ms-dropdown { position: relative; display: inline-block; }
+
+        .ms-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-sand);
+            background-color: var(--card-white);
+            min-width: 180px;
+            font-family: var(--font-sans);
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--gulf-navy);
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+            transition: var(--transition);
+        }
+
+        .ms-toggle:hover, .ms-toggle.open {
+            border-color: var(--gulf-gold);
+        }
+
+        .ms-toggle .ms-chev {
+            width: 0; height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid var(--gulf-gold);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .ms-toggle.open .ms-chev { transform: rotate(180deg); }
+
+        .ms-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            min-width: 230px;
+            max-height: 280px;
+            overflow-y: auto;
+            background: var(--card-white);
+            border: 1px solid var(--border-sand);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 8px;
+            z-index: 30;
+        }
+
+        .ms-panel.open { display: block; }
+
+        .ms-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 8px;
+            border-radius: 5px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-navy);
+            cursor: pointer;
+        }
+
+        .ms-option:hover { background: var(--border-light); }
+
+        .ms-option input[type="checkbox"] {
+            accent-color: var(--gulf-gold);
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        .ms-option.ms-all { font-weight: 700; }
+
+        .ms-divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: 6px 2px;
+        }
+
+        /* Hoverable figures with a calculation tooltip (custom, JS-positioned) */
+        .calc-hint {
+            cursor: help;
+            border-bottom: 1px dotted var(--text-light);
+        }
+
+        .calc-hint-badge { cursor: help; }
+
+        #calcTooltip {
+            position: fixed;
+            display: none;
+            background: var(--gulf-navy);
+            color: #fff;
+            font-family: var(--font-sans);
+            font-size: 0.75rem;
+            font-weight: 500;
+            line-height: 1.6;
+            padding: 9px 13px;
+            border-radius: 7px;
+            white-space: pre-line;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            max-width: 260px;
+            pointer-events: none;
+        }
+
+        /* Gulf Coast Gold CTA Button */
+        .export-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 22px;
+            background-color: var(--gulf-gold);
+            color: var(--card-white);
+            border: none;
+            border-radius: 6px;
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(197, 160, 89, 0.2);
+            transition: var(--transition);
+        }
+
+        .export-btn:hover {
+            background-color: var(--gulf-gold-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(197, 160, 89, 0.3);
+        }
+
+        /* Luxury Cards Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: var(--card-white);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-light);
+            border-top: 3px solid var(--gulf-navy);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px -5px rgba(15, 42, 74, 0.08);
+        }
+
+        /* Accent top line on gold card */
+        .card:nth-child(2), .card:nth-child(4) {
+            border-top: 3px solid var(--gulf-gold);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-family: var(--font-display);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            font-weight: 700;
+        }
+
+        .card-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--bg-sand);
+            color: var(--gulf-gold);
+        }
+
+        .card .value {
+            font-size: 2.1rem;
+            font-weight: 700;
+            color: var(--gulf-navy);
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+            font-family: var(--font-serif);
+        }
+
+        .card .sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Section headings above table blocks */
+        .section-heading h2 {
+            margin: 0 0 4px;
+            font-family: var(--font-serif);
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--gulf-navy);
+        }
+        .section-heading p {
+            margin: 0 0 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            max-width: 760px;
+        }
+
+        /* Gulf Table Layout */
+        .table-container {
+            background: var(--card-white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+            overflow-y: hidden;
+            border: 1px solid var(--border-sand);
+            margin-bottom: 32px;
+        }
+
+        .table-container .section-heading {
+            padding: 20px 20px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: right;
+            font-size: 0.85rem;
+        }
+
+        th {
+            background: var(--bg-sand);
+            padding: 12px 14px;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--gulf-navy);
+            border-bottom: 1px solid var(--border-sand);
+            white-space: normal;
+            line-height: 1.35;
+            vertical-align: bottom;
+        }
+
+        td {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-navy);
+            font-variant-numeric: tabular-nums;
+            transition: var(--transition);
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        tr:hover td {
+            background-color: var(--border-light);
+        }
+
+        /* Sunset Amber highlight for active month */
+        tr.current-month td {
+            background: #fffdf5;
+            border-bottom: 1px solid #f9eed7;
+            border-top: 1px solid #f9eed7;
+        }
+
+        tr.current-month td:first-child {
+            box-shadow: inset 4px 0 0 0 var(--gulf-gold);
+        }
+
+        tr.no-data td {
+            color: var(--text-light);
+        }
+
+        .text-left { text-align: left; }
+
+        .unit-name {
+            font-weight: 700;
+            color: var(--gulf-navy);
+            font-family: var(--font-serif);
+            font-size: 0.9rem;
+        }
+
+        /* Dynamic Badges with Soft Coastal Hues */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 50px;
+            font-family: var(--font-sans);
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        .badge-pos {
+            background: var(--gulf-teal-light);
+            color: var(--gulf-teal);
+        }
+
+        .badge-neg {
+            background: var(--coral-rose-light);
+            color: var(--coral-rose);
+        }
+
+        .goal-col { color: var(--text-muted); }
+        .actual-col { font-weight: 700; color: var(--gulf-navy); }
+
+        .variance-pos {
+            color: var(--gulf-teal);
+            font-weight: 700;
+        }
+
+        .variance-neg {
+            color: var(--coral-rose);
+            font-weight: 700;
+        }
+
+        /* Aggregation Row Header styling */
+        tr.q-total td {
+            background: var(--bg-sand);
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: var(--gulf-navy);
+            border-top: 1px solid var(--border-sand);
+            border-bottom: 1px solid var(--border-sand);
+        }
+        tr.q-total .unit-name {
+            font-family: var(--font-serif);
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        /* Legends */
+        .legend {
+            display: flex;
+            gap: 24px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-family: var(--font-display);
+            text-transform: uppercase;
+            font-size: 0.65rem;
+            letter-spacing: 0.05em;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .dot-actual { background: var(--gulf-teal); }
+        .dot-cur    { background: var(--gulf-gold); }
+
+        .refresh-note {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        /* ── Motion (no colour or layout changes; everything is off for reduced-motion devices) ── */
+        @keyframes rise-in {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: none; }
+        }
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        @keyframes pop-in {
+            from { opacity: 0; transform: scale(0.9) translateY(-4px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        /* Page open: header, cards and sections slide up and fade in one after another (60ms apart).
+           "backwards" fill keeps the cards' hover lift working once the animation has finished. */
+        .container > header,
+        .container > .table-container,
+        .container > .legend,
+        .container > .refresh-note,
+        .card.enter {
+            animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+            animation-delay: calc(var(--i, 0) * 60ms);
+        }
+        .container > .table-container { --i: 6; }
+        .container > .legend          { --i: 7; }
+        .container > .refresh-note    { --i: 8; }
+        .container > .table-container ~ .table-container { --i: 9; }
+
+        /* Table rows fade in top to bottom (delay capped so long tables stay quick) */
+        tbody tr {
+            animation: fade-in 0.4s ease-out backwards;
+            animation-delay: calc(min(var(--r, 0), 20) * 30ms);
+        }
+
+        /* Filter pop-ups zoom in with a slight bounce over a softly blurred page */
+        .ms-panel.open {
+            transform-origin: top left;
+            animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+        }
+        .ms-dropdown.is-open { z-index: 31; }
+        #msBackdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            pointer-events: none;
+            opacity: 0;
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+            transition: opacity 0.25s ease;
+        }
+        #msBackdrop.show { opacity: 1; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+            .card:hover, .export-btn:hover { transform: none; }
+            #msBackdrop { display: none; }
+        }
+
+/* ══ Version 2 additions ══ */
+.v2-badge { display:inline-block; margin-left:8px; padding:1px 8px; border-radius:20px; background:var(--gulf-navy); color:#fff; font-size:.62rem; letter-spacing:.12em; }
+header { align-items:flex-start; }
+.filters { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; flex-basis:100%; }
+.top-actions { display:flex; gap:10px; align-items:center; justify-content:flex-end; flex-wrap:wrap; }
+.ver-link, .icon-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border:1px solid var(--border-sand); border-radius:10px; background:var(--card-white); color:var(--gulf-navy); font:600 .8rem var(--font-sans); text-decoration:none; cursor:pointer; transition:var(--transition); }
+.ver-link:hover, .icon-btn:hover { border-color:var(--gulf-gold); color:var(--gulf-gold-hover); }
+.ms-panel { max-height:340px; overflow:auto; min-width:250px; }
+.ms-option .cnt { margin-left:auto; padding-left:14px; color:var(--text-light); font-size:.72rem; font-variant-numeric:tabular-nums; }
+.summary-grid { grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }
+.summary-grid .card .value { white-space:nowrap; font-size:clamp(1.55rem,2.1vw,2.1rem); }
+.card .value.na { color:var(--text-light); font-size:1.3rem; }
+.seg { display:inline-flex; border:1px solid var(--border-sand); border-radius:10px; overflow:hidden; background:var(--card-white); }
+.seg button { border:0; background:transparent; padding:7px 12px; font:600 .78rem var(--font-sans); color:var(--text-muted); cursor:pointer; }
+.seg button.on { background:var(--gulf-navy); color:#fff; }
+.section-bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:22px 28px 6px; }
+.section-bar h2 { margin:0; font-family:var(--font-serif); font-size:1.25rem; color:var(--gulf-navy); }
+.section-bar p { margin:2px 0 0; color:var(--text-muted); font-size:.82rem; }
+.muted-sub { display:block; font-size:.72rem; color:var(--text-light); font-weight:400; }
+.bar { height:6px; background:var(--border-light); border-radius:4px; overflow:hidden; min-width:70px; }
+.bar > span { display:block; height:100%; background:var(--gulf-gold); }
+th.sortable { cursor:pointer; user-select:none; }
+th.sortable:hover { color:var(--gulf-gold-hover); }
+th .arr { opacity:.6; margin-left:3px; }
+.dot-future { background:var(--text-light); }
+.note-banner { margin:0 0 18px; padding:10px 14px; border:1px solid var(--border-sand); border-left:4px solid var(--gulf-gold); border-radius:10px; background:var(--card-white); color:var(--text-muted); font-size:.82rem; }
+
+/* Settings drawer */
+.drawer-overlay { position:fixed; inset:0; background:rgba(15,42,74,.35); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .25s; z-index:90; }
+.drawer-overlay.show { opacity:1; pointer-events:auto; }
+.drawer { position:fixed; top:0; right:0; height:100%; width:min(1080px,100%); background:var(--bg-sand); box-shadow:-20px 0 50px rgba(15,42,74,.18); transform:translateX(102%); transition:transform .3s cubic-bezier(.22,1,.36,1); overflow:auto; z-index:100; }
+.drawer.open { transform:none; }
+.drawer-head { position:sticky; top:0; z-index:5; background:var(--bg-sand); padding:22px 28px 0; border-bottom:1px solid var(--border-sand); }
+.drawer-head .row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.drawer-head h2 { margin:0; font-family:var(--font-serif); font-size:1.5rem; }
+.tabs { display:flex; gap:4px; margin-top:14px; }
+.tabs button { border:0; background:transparent; padding:10px 16px; font:700 .8rem var(--font-display); color:var(--text-muted); cursor:pointer; border-bottom:3px solid transparent; }
+.tabs button.on { color:var(--gulf-navy); border-bottom-color:var(--gulf-gold); }
+.drawer-body { padding:22px 28px 60px; }
+.panel-card { background:var(--card-white); border:1px solid var(--border-sand); border-radius:16px; padding:18px 20px; margin-bottom:18px; box-shadow:var(--shadow); }
+.panel-card h3 { margin:0 0 4px; font:800 .72rem var(--font-display); letter-spacing:.1em; text-transform:uppercase; color:var(--gulf-gold); }
+.panel-card p, .panel-card li { color:var(--text-muted); font-size:.86rem; margin:4px 0; }
+.grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px; }
+.mini { width:100%; border-collapse:collapse; font-size:.82rem; }
+.mini td, .mini th { padding:6px 8px; border-bottom:1px solid var(--border-light); text-align:left; }
+.mini td.r, .mini th.r { text-align:right; font-variant-numeric:tabular-nums; }
+.toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:12px; }
+.toolbar input[type=search], .toolbar select, .field select { padding:8px 10px; border:1px solid var(--border-sand); border-radius:10px; background:var(--card-white); font:500 .82rem var(--font-sans); color:var(--text-navy); }
+.toolbar input[type=search] { min-width:220px; }
+.units-wrap { max-height:62vh; overflow:auto; border:1px solid var(--border-sand); border-radius:14px; background:var(--card-white); }
+.units-wrap table { font-size:.8rem; }
+.units-wrap th { position:sticky; top:0; background:var(--card-white); z-index:2; }
+.pill { display:inline-block; padding:1px 8px; border-radius:20px; font-size:.7rem; font-weight:700; background:var(--border-light); color:var(--text-muted); }
+.pill.warn { background:var(--coral-rose-light); color:var(--coral-rose); }
+.pill.ok { background:var(--gulf-teal-light); color:var(--gulf-teal); }
+.toggle-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid var(--border-light); }
+.toggle-row:last-child { border-bottom:0; }
+.toggle-row b { color:var(--gulf-navy); font-size:.9rem; }
+.toggle-row span { display:block; color:var(--text-muted); font-size:.8rem; }
+.units-wrap th, .units-wrap td { padding:9px 12px; white-space:nowrap; }
+.units-wrap .unit-name { font-family:var(--font-sans); font-size:.8rem; font-weight:600; }
+.drawer tbody tr { animation:none !important; }
+@media (max-width:760px) { body { padding:24px 14px; } .filters { justify-content:flex-start; } }
+    </style>
+</head>
+<body>
+<div id="msBackdrop" aria-hidden="true"></div>
+<div class="container">
+    <header>
+        <div class="header-title">
+            <span class="brand-eyebrow"><span class="live-pulse"></span> GCVR Portfolio Analytics <span class="v2-badge">VERSION 2</span></span>
+            <h1>Performance Dashboard</h1>
+            <p class="subtitle">Revenue by Category &amp; Subcategory &nbsp;·&nbsp; Data as of <span id="asOfDate"></span><span> &nbsp;·&nbsp; Page updated <span id="pageUpdated"></span></span></p>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px;">
+            <div class="top-actions" style="margin:0">
+                <a class="ver-link" id="v1Link" href="../">&larr; Version 1</a>
+                <button class="icon-btn" id="settingsBtn" type="button">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    Settings
+                </button>
+                <button class="export-btn" type="button" id="exportBtn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Export CSV
+                </button>
+            </div>
+        </div>
+        <div class="filters" id="filters"></div>
+    </header>
+
+    <div id="banner"></div>
+    <div class="summary-grid" id="summaryGrid"></div>
+
+    <div class="table-container">
+        <div class="section-bar">
+            <div>
+                <h2>Breakdown</h2>
+                <p id="breakdownNote"></p>
+            </div>
+            <div class="seg" id="groupSeg"></div>
+        </div>
+        <table id="breakdownTable">
+            <thead id="breakdownHead"></thead>
+            <tbody id="breakdownBody"></tbody>
+        </table>
+    </div>
+
+    <div class="table-container" style="margin-top:24px;">
+        <div class="section-bar">
+            <div>
+                <h2>By Month</h2>
+                <p>Revenue is counted in the month of check-in. Months after today are bookings already on the books.</p>
+            </div>
+        </div>
+        <table id="monthTable">
+            <thead id="monthHead"></thead>
+            <tbody id="monthBody"></tbody>
+        </table>
+    </div>
+
+    <div class="legend">
+        <span><span class="dot dot-actual"></span>Checked in</span>
+        <span><span class="dot dot-cur"></span>Current month (in progress)</span>
+        <span><span class="dot dot-future"></span>Booked ahead</span>
+    </div>
+    <p class="refresh-note">Data as of <span id="refreshDate"></span> &nbsp;·&nbsp; Source: Streamline &amp; Sales Master Matrix &nbsp;·&nbsp; Updated automatically every morning<br>
+        Targets are set per property, so Target and Variance show only when Subcategory, Tag and Team are all selected.</p>
+</div>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+        <div class="row">
+            <h2>Settings</h2>
+            <button class="icon-btn" type="button" id="drawerClose">Close &#10005;</button>
+        </div>
+        <div class="tabs" id="tabs">
+            <button type="button" data-tab="units" class="on">Units</button>
+            <button type="button" data-tab="config">Configuration</button>
+            <button type="button" data-tab="checks">Data checks</button>
+        </div>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script>
+// ── Data: filled in by build_dashboard.py (units, budgets and settings come from Streamline, the Master Matrix and the private budgets file) ──
+const APP = __APP_DATA__;
+
+const U = APP.units;
+const BUDGETS = APP.budgets;
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const CUR = APP.currentMonth;                                   // 1-12
+const NONE_SUB = '(not set)';
+const fmt  = v => '$' + Math.round(v).toLocaleString('en-US');
+const fmtS = v => (v >= 0 ? '+' : '−') + '$' + Math.abs(Math.round(v)).toLocaleString('en-US');
+const esc  = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sum  = (arr, idx) => idx.reduce((t, i) => t + (arr[i] || 0), 0);
+
+document.getElementById('asOfDate').textContent = APP.generated;
+document.getElementById('refreshDate').textContent = APP.generated;
+document.getElementById('pageUpdated').textContent = APP.pageUpdated;
+if (APP.v1Url) document.getElementById('v1Link').setAttribute('href', APP.v1Url);
+
+// ── Preferences (kept in this browser only) ──
+const PREF_KEY = 'gcvr_v2_prefs';
+const prefs = { retired: true, group: 'prop' };
+try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || '{}')); } catch (e) {}
+const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) {} };
+
+// ── Filters ──
+const PROP_ORDER = ['Non-Resort','Island Vacations','Sandalfoot','Signal Inn','GBB','YCBR','Colony Inn','Not in any property'];
+const propCat = p => (['Sandalfoot','Signal Inn','GBB','YCBR','Colony Inn'].includes(p) ? 'Resort' : (p === 'Not in any property' ? null : 'Non-Resort'));
+const DIMS = [
+    { key:'cat',  label:'Category',        get:u => u.c,           order:['Resort','Non-Resort','Unclassified'] },
+    { key:'prop', label:'Property',        get:u => u.p,           order:PROP_ORDER },
+    { key:'sub',  label:'Subcategory',     get:u => u.s || NONE_SUB },
+    { key:'tag',  label:'Tag',             get:u => u.t || 'None', order:['Seasonal','Luxury','None'] },
+    { key:'team', label:'Dave / Jessica',  get:u => u.tm || 'Other', order:['Dave','Jessica','Other'] }
+];
+const F = {};
+const optionValues = {};
+DIMS.forEach(d => {
+    const counts = {};
+    U.forEach(u => { const v = d.get(u); counts[v] = (counts[v] || 0) + 1; });
+    let vals = Object.keys(counts);
+    if (d.order) vals.sort((a, b) => (d.order.indexOf(a) + 1 || 99) - (d.order.indexOf(b) + 1 || 99));
+    else vals.sort((a, b) => (a === NONE_SUB) - (b === NONE_SUB) || counts[b] - counts[a] || a.localeCompare(b));
+    optionValues[d.key] = vals.map(v => [v, counts[v]]);
+    F[d.key] = new Set(vals.filter(v => !(d.key === 'prop' && v === 'Not in any property')));
+});
+F.month = new Set(MONTHS.map((_, i) => i));
+const allSelected = key => key === 'month' ? F.month.size === 12 : optionValues[key].every(([v]) => F[key].has(v));
+
+function msHtml(id, label, opts, selected, allLabel) {
+    const allOn = opts.every(([v]) => selected.has(v));
+    return `<div class="filter-group"><label>${label}</label>
+      <div class="ms-dropdown" id="dd_${id}">
+        <button type="button" class="ms-toggle" data-dd="${id}"><span class="lbl"></span><span class="ms-chev"></span></button>
+        <div class="ms-panel" id="pn_${id}">
+          <label class="ms-option ms-all"><input type="checkbox" data-all="${id}" ${allOn ? 'checked' : ''}> ${allLabel}</label>
+          <div class="ms-divider"></div>
+          ${opts.map(([v, n]) => `<label class="ms-option"><input type="checkbox" data-ms="${id}" value="${esc(v)}" ${selected.has(v) ? 'checked' : ''}> ${esc(v)}${n != null ? `<span class="cnt">${n}</span>` : ''}</label>`).join('')}
+        </div></div></div>`;
+}
+function setLabel(id, opts, selected, allLabel) {
+    const el = document.querySelector(`#dd_${id} .lbl`);
+    if (!el) return;
+    const n = opts.filter(([v]) => selected.has(v)).length;
+    el.textContent = n === opts.length ? allLabel : (n === 0 ? 'None' : (n === 1 ? opts.find(([v]) => selected.has(v))[0] : n + ' selected'));
+}
+function buildFilters() {
+    const monthOpts = MONTHS.map((m, i) => [String(i), null]);
+    const html = DIMS.map(d => msHtml(d.key, d.label, optionValues[d.key], F[d.key], 'All'))
+        .concat([`<div class="filter-group"><label>Month</label>
+          <div class="ms-dropdown" id="dd_month"><button type="button" class="ms-toggle" data-dd="month"><span class="lbl"></span><span class="ms-chev"></span></button>
+          <div class="ms-panel" id="pn_month"><label class="ms-option ms-all"><input type="checkbox" data-all="month" checked> Full Year</label><div class="ms-divider"></div>
+          ${MONTHS.map((m, i) => `<label class="ms-option"><input type="checkbox" data-ms="month" value="${i}" checked> ${m}</label>`).join('')}</div></div></div>`]).join('');
+    document.getElementById('filters').innerHTML = html;
+    refreshLabels();
+}
+function refreshLabels() {
+    DIMS.forEach(d => setLabel(d.key, optionValues[d.key], F[d.key], 'All'));
+    const el = document.querySelector('#dd_month .lbl');
+    el.textContent = F.month.size === 12 ? 'Full Year' : (F.month.size === 0 ? 'None' : (F.month.size === 1 ? MONTHS[[...F.month][0]] : F.month.size + ' months'));
+}
+document.addEventListener('click', e => {
+    const tg = e.target.closest('.ms-toggle');
+    if (tg) {
+        const id = tg.dataset.dd, open = !tg.classList.contains('open');
+        document.querySelectorAll('.ms-toggle.open').forEach(x => { x.classList.remove('open'); x.nextElementSibling.classList.remove('open'); x.parentElement.classList.remove('is-open'); });
+        if (open) { tg.classList.add('open'); tg.nextElementSibling.classList.add('open'); tg.parentElement.classList.add('is-open'); }
+        return;
+    }
+    if (!e.target.closest('.ms-panel')) document.querySelectorAll('.ms-toggle.open').forEach(x => { x.classList.remove('open'); x.nextElementSibling.classList.remove('open'); x.parentElement.classList.remove('is-open'); });
+});
+document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset.all) {
+        const id = t.dataset.all, on = t.checked;
+        const pn = document.getElementById('pn_' + id);
+        pn.querySelectorAll('input[data-ms]').forEach(cb => { cb.checked = on; });
+        if (id === 'month') F.month = new Set(on ? MONTHS.map((_, i) => i) : []);
+        else F[id] = new Set(on ? optionValues[id].map(([v]) => v) : []);
+    } else if (t.dataset.ms) {
+        const id = t.dataset.ms, pn = document.getElementById('pn_' + id);
+        const vals = [...pn.querySelectorAll('input[data-ms]')].filter(cb => cb.checked).map(cb => cb.value);
+        if (id === 'month') F.month = new Set(vals.map(Number)); else F[id] = new Set(vals);
+        const total = pn.querySelectorAll('input[data-ms]').length;
+        pn.querySelector('input[data-all]').checked = vals.length === total;
+    } else return;
+    refreshLabels(); render();
+});
+
+// ── Calculations ──
+const passes = u => DIMS.every(d => F[d.key].has(d.get(u))) && (prefs.retired || u.st === 'Active');
+const monthIdx = () => [...F.month].sort((a, b) => a - b);
+function targetInfo() {
+    const ok = ['sub','tag','team'].every(allSelected);
+    const props = [...new Set(U.filter(u => F.prop.has(u.p) && F.cat.has(u.c)).map(u => u.p))].filter(p => BUDGETS[p]);
+    return { ok: ok && props.length > 0, props };
+}
+function targetFor(props, idx) { return props.reduce((t, p) => t + sum(BUDGETS[p], idx), 0); }
+
+function badge(pct) { return pct == null ? '—' : `<span class="badge ${pct >= 0 ? 'badge-pos' : 'badge-neg'}">${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct).toFixed(1)}%</span>`; }
+const pctOf = (a, b) => b > 0 ? ((a - b) / b) * 100 : null;
+const icon = (path, bg, fg) => `<div class="card-icon" ${bg ? `style="background-color:${bg};color:${fg};"` : ''}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${path}</svg></div>`;
+let firstPaint = true;
+
+function renderCards(sel, idx) {
+    const rev = sel.reduce((t, u) => t + sum(u.a, idx), 0), ly = sel.reduce((t, u) => t + sum(u.l, idx), 0);
+    const T = targetInfo(), tgt = T.ok ? targetFor(T.props, idx) : null, vr = tgt == null ? null : rev - tgt;
+    const good = 'var(--gulf-teal-light)', goodC = 'var(--gulf-teal)', bad = 'var(--coral-rose-light)', badC = 'var(--coral-rose)';
+    const withRev = sel.filter(u => sum(u.a, idx) > 0).length;
+    const yoy = pctOf(rev, ly), enter = firstPaint ? ' enter' : '';
+    document.getElementById('summaryGrid').innerHTML = `
+      <div class="card${enter}" style="--i:1"><div class="card-header"><h3>Target (Selected)</h3>${icon('<circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle>')}</div>
+        <div class="value ${tgt == null ? 'na' : ''}">${tgt == null ? 'Not available' : fmt(tgt)}</div><div class="sub">${tgt == null ? 'budgets are set per property' : 'from budget document'}</div></div>
+      <div class="card${enter}" style="--i:2"><div class="card-header"><h3>Revenue Recognized (Selected)</h3>${icon('<line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>', good, goodC)}</div>
+        <div class="value">${fmt(rev)}</div><div class="sub">Revenue by Check-Ins</div></div>
+      <div class="card${enter}" style="--i:3"><div class="card-header"><h3>Variance ($)</h3>${icon('<path d="M12 8v8"></path><path d="M8 12h8"></path><circle cx="12" cy="12" r="10"></circle>', vr == null || vr >= 0 ? good : bad, vr == null || vr >= 0 ? goodC : badC)}</div>
+        <div class="value ${vr == null ? 'na' : (vr >= 0 ? 'variance-pos' : 'variance-neg')}">${vr == null ? 'Not available' : fmtS(vr)}</div><div class="sub">vs budget</div></div>
+      <div class="card${enter}" style="--i:4"><div class="card-header"><h3>Revenue v/s Target</h3>${icon('<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>', vr == null || vr >= 0 ? good : bad, vr == null || vr >= 0 ? goodC : badC)}</div>
+        <div class="value ${vr == null ? 'na' : (vr >= 0 ? 'variance-pos' : 'variance-neg')}">${vr == null ? 'Not available' : (vr >= 0 ? '↑ ' : '↓ ') + Math.abs(vr / tgt * 100).toFixed(1) + '%'}</div><div class="sub"></div></div>
+      <div class="card${enter}" style="--i:5"><div class="card-header"><h3>Revenue Recognized YOY</h3>${icon('<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline>', yoy == null || yoy >= 0 ? good : bad, yoy == null || yoy >= 0 ? goodC : badC)}</div>
+        <div class="value ${yoy == null ? 'na' : (yoy >= 0 ? 'variance-pos' : 'variance-neg')}">${yoy == null ? '—' : (yoy >= 0 ? '↑ ' : '↓ ') + Math.abs(yoy).toFixed(1) + '%'}</div><div class="sub">${fmt(rev)} vs ${fmt(ly)} LY</div></div>
+      <div class="card${enter}" style="--i:6"><div class="card-header"><h3>Units (Selected)</h3>${icon('<rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect>')}</div>
+        <div class="value">${sel.length.toLocaleString('en-US')}</div><div class="sub">${withRev.toLocaleString('en-US')} with revenue${withRev ? ' · avg ' + fmt(rev / withRev) : ''}</div></div>`;
+    firstPaint = false;
+}
+
+// ── Breakdown ──
+const GROUPS = [['prop','Property'],['cat','Category'],['sub','Subcategory'],['tag','Tag'],['team','Dave / Jessica'],['unit','Unit']];
+let sortCol = 'rev', sortDir = -1, lastRows = [], lastCols = [];
+function groupKey(u, g) { return g === 'unit' ? String(u.id) : DIMS.find(d => d.key === g).get(u); }
+function renderBreakdown(sel, idx) {
+    const g = prefs.group, T = targetInfo(), map = new Map();
+    sel.forEach(u => {
+        const k = groupKey(u, g);
+        if (!map.has(k)) map.set(k, { k, name: g === 'unit' ? u.n : k, sub: g === 'unit' ? `${u.p} · ${u.s || NONE_SUB}` : '', units: 0, withRev: 0, rev: 0, ly: 0, props: new Set() });
+        const r = map.get(k); r.units++; r.rev += sum(u.a, idx); r.ly += sum(u.l, idx); r.props.add(u.p);
+        if (sum(u.a, idx) > 0) r.withRev++;
+    });
+    let rows = [...map.values()];
+    const total = rows.reduce((t, r) => t + r.rev, 0);
+    const canTarget = T.ok && (g === 'prop' || g === 'cat');
+    rows.forEach(r => {
+        r.share = total > 0 ? r.rev / total * 100 : 0;
+        r.avg = r.withRev ? r.rev / r.withRev : 0;
+        r.yoy = pctOf(r.rev, r.ly);
+        if (canTarget) {
+            const ps = g === 'prop' ? [r.k] : [...new Set(U.filter(u => propCat(u.p) === r.k && F.prop.has(u.p)).map(u => u.p))];
+            const use = ps.filter(p => BUDGETS[p] && T.props.includes(p));
+            r.tgt = use.length ? targetFor(use, idx) : null;
+            r.var = r.tgt == null ? null : r.rev - r.tgt;
+        }
+    });
+    const cols = [['name', g === 'unit' ? 'Unit' : GROUPS.find(x => x[0] === g)[1], 'text-left'], ['units', 'Units'], ['rev', 'Revenue Recognized', 'actual-col'], ['share', 'Share'],
+                  ['ly', 'Last Year (Pace)', 'goal-col'], ['yoy', 'YoY %'], ['avg', 'Avg / Unit']];
+    if (canTarget) cols.push(['tgt', 'Target', 'goal-col'], ['var', 'Variance ($)']);
+    if (!cols.some(c => c[0] === sortCol)) { sortCol = 'rev'; sortDir = -1; }
+    const dir = sortCol === 'name' && sortDir === -1 ? -1 : sortDir;
+    rows.sort((a, b) => {
+        const x = a[sortCol], y = b[sortCol];
+        if (sortCol === 'name') return dir * String(x).localeCompare(String(y));
+        return dir * ((x == null ? -Infinity : x) - (y == null ? -Infinity : y));
+    });
+    document.getElementById('breakdownHead').innerHTML = '<tr>' + cols.map(c => `<th class="sortable ${c[2] || ''}" data-sort="${c[0]}">${c[1]}${sortCol === c[0] ? `<span class="arr">${sortDir === -1 ? '▼' : '▲'}</span>` : ''}</th>`).join('') + '</tr>';
+    const tot = { units: rows.reduce((t, r) => t + r.units, 0), withRev: rows.reduce((t, r) => t + r.withRev, 0), rev: total, ly: rows.reduce((t, r) => t + r.ly, 0) };
+    tot.tgt = canTarget ? targetFor(T.props, idx) : null;
+    const cell = (r, c, isTot) => {
+        switch (c[0]) {
+            case 'name': return `<td class="text-left unit-name">${isTot ? 'Total' : esc(r.name)}${!isTot && r.sub ? `<span class="muted-sub">${esc(r.sub)}</span>` : ''}</td>`;
+            case 'units': return `<td>${r.units.toLocaleString('en-US')}</td>`;
+            case 'rev': return `<td class="actual-col">${fmt(r.rev)}</td>`;
+            case 'share': return `<td><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;"><div class="bar" style="width:70px"><span style="width:${Math.min(100, isTot ? 100 : r.share).toFixed(1)}%"></span></div>${isTot ? '100.0' : r.share.toFixed(1)}%</div></td>`;
+            case 'ly': return `<td class="goal-col">${fmt(r.ly)}</td>`;
+            case 'yoy': return `<td>${badge(isTot ? pctOf(r.rev, r.ly) : r.yoy)}</td>`;
+            case 'avg': return `<td>${r.withRev ? fmt(isTot ? r.rev / r.withRev : r.avg) : '—'}</td>`;
+            case 'tgt': return `<td class="goal-col">${r.tgt == null ? '—' : fmt(r.tgt)}</td>`;
+            case 'var': { const v = isTot ? (r.tgt == null ? null : r.rev - r.tgt) : r.var; return `<td class="${v == null ? '' : (v >= 0 ? 'variance-pos' : 'variance-neg')}">${v == null ? '—' : fmtS(v)}</td>`; }
+        }
+    };
+    document.getElementById('breakdownBody').innerHTML = rows.map((r, i) => `<tr style="--r:${i}">${cols.map(c => cell(r, c, false)).join('')}</tr>`).join('')
+        + (rows.length ? `<tr class="q-total">${cols.map(c => cell(tot, c, true)).join('')}</tr>` : `<tr><td colspan="${cols.length}" style="text-align:center;color:var(--text-muted);padding:28px;">No units match the current filters.</td></tr>`);
+    document.getElementById('breakdownNote').textContent = `${rows.length.toLocaleString('en-US')} ${g === 'unit' ? 'units' : 'groups'} · click a column heading to sort`;
+    lastRows = rows; lastCols = cols; lastTot = tot;
+}
+let lastTot = null;
+
+function renderMonths(sel, idx) {
+    const T = targetInfo(), withT = T.ok;
+    document.getElementById('monthHead').innerHTML = '<tr><th class="text-left">Month</th><th class="actual-col">Revenue Recognized</th><th class="goal-col">Last Year (Pace)</th><th>YoY %</th>' + (withT ? '<th class="goal-col">Target</th><th>Variance ($)</th>' : '') + '</tr>';
+    let tr = 0, tl = 0, tt = 0;
+    const body = idx.map((m, i) => {
+        const r = sel.reduce((t, u) => t + (u.a[m] || 0), 0), l = sel.reduce((t, u) => t + (u.l[m] || 0), 0), t = withT ? targetFor(T.props, [m]) : 0;
+        tr += r; tl += l; tt += t;
+        const cls = m + 1 < CUR ? 'dot-actual' : (m + 1 === CUR ? 'dot-cur' : 'dot-future');
+        return `<tr style="--r:${i}"><td class="text-left unit-name"><span class="dot ${cls}" style="margin-right:8px"></span>${MONTHS[m]}</td><td class="actual-col">${fmt(r)}</td><td class="goal-col">${fmt(l)}</td><td>${badge(pctOf(r, l))}</td>`
+            + (withT ? `<td class="goal-col">${fmt(t)}</td><td class="${r - t >= 0 ? 'variance-pos' : 'variance-neg'}">${fmtS(r - t)}</td>` : '') + '</tr>';
+    }).join('');
+    document.getElementById('monthBody').innerHTML = body + (idx.length ? `<tr class="q-total"><td class="text-left unit-name">Total</td><td class="actual-col">${fmt(tr)}</td><td class="goal-col">${fmt(tl)}</td><td>${badge(pctOf(tr, tl))}</td>`
+        + (withT ? `<td class="goal-col">${fmt(tt)}</td><td class="${tr - tt >= 0 ? 'variance-pos' : 'variance-neg'}">${fmtS(tr - tt)}</td>` : '') + '</tr>' : '');
+}
+
+function renderBanner() {
+    const m = APP.matrix, el = document.getElementById('banner');
+    el.innerHTML = !m.loaded ? '<div class="note-banner"><b>Subcategories are not loaded.</b> The Sales Master Matrix has not been added to the server yet, so units show “(not set)” for subcategory, tag and team fall back to Streamline and KeyData.</div>' : '';
+}
+function renderGroupSeg() {
+    document.getElementById('groupSeg').innerHTML = GROUPS.map(([k, l]) => `<button type="button" data-g="${k}" class="${prefs.group === k ? 'on' : ''}">${l}</button>`).join('');
+}
+function render() {
+    const sel = U.filter(passes), idx = monthIdx();
+    renderCards(sel, idx); renderBreakdown(sel, idx); renderMonths(sel, idx); renderGroupSeg();
+}
+document.getElementById('groupSeg').addEventListener('click', e => { const b = e.target.closest('button[data-g]'); if (b) { prefs.group = b.dataset.g; savePrefs(); render(); } });
+document.getElementById('breakdownHead').addEventListener('click', e => {
+    const th = e.target.closest('th[data-sort]'); if (!th) return;
+    const c = th.dataset.sort; if (sortCol === c) sortDir *= -1; else { sortCol = c; sortDir = c === 'name' ? 1 : -1; }
+    render();
+});
+
+// ── CSV ──
+function download(name, rows) {
+    const csv = '﻿' + rows.map(r => r.map(v => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = name;
+    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+document.getElementById('exportBtn').addEventListener('click', () => {
+    const cols = lastCols.filter(c => c[0] !== 'share');
+    const head = cols.map(c => c[1]);
+    const val = (r, c) => c[0] === 'yoy' ? (r.yoy == null ? '' : r.yoy.toFixed(1) + '%') : (typeof r[c[0]] === 'number' ? Math.round(r[c[0]] * 100) / 100 : (r[c[0]] == null ? '' : r[c[0]]));
+    const out = [head].concat(lastRows.map(r => cols.map(c => val(r, c))));
+    download(`performance-v2-by-${prefs.group}-${APP.asOf}.csv`, out);
+});
+
+// ── Settings drawer ──
+let drawerTab = 'units';
+const uf = { q: '', prop: '', cat: '', sub: '', tag: '', team: '', st: '' };
+const drawer = document.getElementById('drawer'), overlay = document.getElementById('drawerOverlay');
+function openDrawer() { drawer.classList.add('open'); overlay.classList.add('show'); drawer.setAttribute('aria-hidden', 'false'); renderDrawer(); }
+function closeDrawer() { drawer.classList.remove('open'); overlay.classList.remove('show'); drawer.setAttribute('aria-hidden', 'true'); }
+document.getElementById('settingsBtn').addEventListener('click', openDrawer);
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+overlay.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+document.getElementById('tabs').addEventListener('click', e => {
+    const b = e.target.closest('button[data-tab]'); if (!b) return;
+    drawerTab = b.dataset.tab; document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b)); renderDrawer();
+});
+const yearRev = u => u.a.reduce((t, v) => t + v, 0);
+function unitFilter(u) {
+    if (uf.q && !(u.n.toLowerCase().includes(uf.q) || String(u.id).includes(uf.q))) return false;
+    return (!uf.prop || u.p === uf.prop) && (!uf.cat || u.c === uf.cat) && (!uf.sub || (u.s || NONE_SUB) === uf.sub)
+        && (!uf.tag || (u.t || 'None') === uf.tag) && (!uf.team || (u.tm || 'Other') === uf.team) && (!uf.st || u.st === uf.st);
+}
+const selHtml = (k, label, vals) => `<select data-uf="${k}"><option value="">${label}: all</option>${vals.map(v => `<option value="${esc(v)}" ${uf[k] === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`;
+function tableCounts(title, key) {
+    const c = {}; U.forEach(u => { const v = DIMS.find(d => d.key === key).get(u); c[v] = c[v] || { n: 0, r: 0 }; c[v].n++; c[v].r += yearRev(u); });
+    const rows = optionValues[key].map(([v]) => `<tr><td>${esc(v)}</td><td class="r">${c[v].n}</td><td class="r">${fmt(c[v].r)}</td></tr>`).join('');
+    return `<div class="panel-card"><h3>${title}</h3><table class="mini"><tr><th>Value</th><th class="r">Units</th><th class="r">${APP.year} revenue</th></tr>${rows}</table></div>`;
+}
+function renderUnitsTab() {
+    const list = U.filter(unitFilter);
+    const rows = list.map(u => `<tr><td class="text-left unit-name">${esc(u.n)}</td><td>${u.id}</td><td class="text-left">${esc(u.p)}</td><td class="text-left">${esc(u.c)}</td><td class="text-left">${esc(u.s || NONE_SUB)}</td><td class="text-left">${esc(u.t || '—')}</td><td class="text-left">${esc(u.tm || '—')}</td><td class="text-left">${esc(u.rg || '—')}</td><td class="text-left">${u.st === 'Active' ? '<span class="pill ok">Active</span>' : '<span class="pill warn">Retired</span>'}</td><td class="text-left">${esc(u.on || '—')}</td><td>${u.mx ? '✓' : '<span class="pill warn">no</span>'}</td><td class="actual-col">${fmt(yearRev(u))}</td></tr>`).join('');
+    return `<div class="toolbar">
+        <input type="search" id="ufq" placeholder="Search unit name or ID" value="${esc(uf.q)}">
+        ${selHtml('prop', 'Property', optionValues.prop.map(x => x[0]))}${selHtml('cat', 'Category', optionValues.cat.map(x => x[0]))}${selHtml('sub', 'Subcategory', optionValues.sub.map(x => x[0]))}
+        ${selHtml('tag', 'Tag', optionValues.tag.map(x => x[0]))}${selHtml('team', 'Dave / Jessica', optionValues.team.map(x => x[0]))}${selHtml('st', 'Status', ['Active', 'Retired'])}
+        <span class="pill">${list.length} of ${U.length} units</span>
+        <button class="icon-btn" type="button" id="unitsCsv" style="margin-left:auto">Download units CSV</button></div>
+      <div class="units-wrap"><table><thead><tr><th class="text-left">Unit</th><th>ID</th><th class="text-left">Property</th><th class="text-left">Category</th><th class="text-left">Subcategory</th><th class="text-left">Tag</th><th class="text-left">Dave / Jessica</th><th class="text-left">Region</th><th class="text-left">Status</th><th class="text-left">Onboarded</th><th>In Matrix</th><th>${APP.year} revenue</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function renderConfigTab() {
+    const m = APP.matrix;
+    const propRows = PROP_ORDER.map(p => { const us = U.filter(u => u.p === p); return us.length ? `<tr><td>${esc(p)}</td><td>${esc(propCat(p) || '—')}</td><td class="r">${us.length}</td><td class="r">${BUDGETS[p] ? fmt(BUDGETS[p].reduce((a, b) => a + b, 0)) : '—'}</td></tr>` : ''; }).join('');
+    return `<div class="panel-card"><h3>Preferences</h3>
+        <div class="toggle-row"><div><b>Include retired units in totals</b><span>Retired (“z”) units that still sit in a property keep their revenue in the totals, as in Version 1.</span></div><input type="checkbox" id="prefRetired" ${prefs.retired ? 'checked' : ''}></div>
+        <div class="toggle-row"><div><b>Default breakdown</b><span>What the Breakdown table groups by when the page opens.</span></div><div class="field"><select id="prefGroup">${GROUPS.map(([k, l]) => `<option value="${k}" ${prefs.group === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
+        <div class="toggle-row"><div><b>Reset all filters</b><span>Back to Full Year, every category and property (units in no property stay hidden).</span></div><button class="icon-btn" type="button" id="resetFilters">Reset</button></div>
+        <p style="margin-top:10px">These preferences are saved in this browser only.</p></div>
+      <div class="grid2">
+        <div class="panel-card"><h3>How units are categorized</h3><ul style="margin:6px 0 0 18px;padding:0">
+          <li><b>Category:</b> Resort (Sandalfoot, Signal Inn, GBB, YCBR, Colony Inn) or Non-Resort (Non-Resort and Island Vacations).</li>
+          <li><b>Subcategory:</b> the Restriction Class from the Sales Master Matrix (30x12, 7 Min, NR With Pool…).</li>
+          <li><b>Tag:</b> Luxury (Matrix account manager “Jessica LUXURY”) or Seasonal (Matrix “VR or Seasonal”); otherwise the Streamline or KeyData tag.</li>
+          <li><b>Dave / Jessica:</b> the Matrix account manager; otherwise the KeyData group.</li>
+          <li><b>Property:</b> from the KeyData groups, plus ${APP.overrides} unit(s) forced into Non-Resort by the override file.</li></ul></div>
+        <div class="panel-card"><h3>Data sources</h3><table class="mini">
+          <tr><td>Streamline last synced</td><td class="r">${esc(APP.generated)}</td></tr><tr><td>Page built</td><td class="r">${esc(APP.pageUpdated)}</td></tr>
+          <tr><td>Sales Master Matrix</td><td class="r">${m.loaded ? '<span class="pill ok">loaded</span>' : '<span class="pill warn">not loaded</span>'}</td></tr>
+          <tr><td>Matrix rows / matched to a unit</td><td class="r">${m.loaded ? m.rows + ' / ' + m.matched : '—'}</td></tr>
+          <tr><td>Units on this page</td><td class="r">${U.length}</td></tr><tr><td>Revenue rule</td><td class="r">whole rent, in check-in month</td></tr></table></div></div>
+      <div class="panel-card"><h3>Properties &amp; budgets</h3><table class="mini"><tr><th>Property</th><th>Category</th><th class="r">Units</th><th class="r">${APP.year} budget</th></tr>${propRows}</table></div>
+      <div class="grid2">${tableCounts('Subcategories (restriction class)', 'sub')}<div>${tableCounts('Tags', 'tag')}${tableCounts('Dave / Jessica', 'team')}</div></div>`;
+}
+function renderChecksTab() {
+    const list = (title, desc, rows, cols) => `<div class="panel-card"><h3>${title} <span class="pill ${rows.length ? 'warn' : 'ok'}">${rows.length}</span></h3><p>${desc}</p>${rows.length ? `<table class="mini">${cols.head}${rows.slice(0, 40).map(cols.row).join('')}</table>${rows.length > 40 ? `<p>… and ${rows.length - 40} more (see the Units tab).</p>` : ''}` : ''}</div>`;
+    const noProp = U.filter(u => u.p === 'Not in any property' && yearRev(u) > 0).sort((a, b) => yearRev(b) - yearRev(a));
+    const notMx = U.filter(u => !u.mx && u.st === 'Active');
+    const nrNoTeam = U.filter(u => u.c === 'Non-Resort' && u.p !== 'Not in any property' && !u.tm && u.st === 'Active');
+    const noSub = U.filter(u => !u.s && u.p !== 'Not in any property' && u.st === 'Active' && u.p !== 'YCBR');
+    return list(`Units with ${APP.year} revenue that no property counts`, `Their revenue is left out of every total on both versions. Switch the Property filter to “Not in any property” to see it.`, noProp,
+          { head: '<tr><th>Unit</th><th>Status</th><th class="r">Revenue</th></tr>', row: u => `<tr><td>${esc(u.n)}</td><td>${u.st}</td><td class="r">${fmt(yearRev(u))}</td></tr>` })
+        + list('Active units missing from the Sales Master Matrix', 'These have no subcategory from the Matrix. Add them to the Matrix or ask whether they are still live.', notMx,
+          { head: '<tr><th>Unit</th><th>Property</th><th class="r">Revenue</th></tr>', row: u => `<tr><td>${esc(u.n)}</td><td>${esc(u.p)}</td><td class="r">${fmt(yearRev(u))}</td></tr>` })
+        + list('Non-Resort units without Dave or Jessica', 'Managed by someone else in the Matrix, or in no group.', nrNoTeam,
+          { head: '<tr><th>Unit</th><th>Property</th><th>Subcategory</th></tr>', row: u => `<tr><td>${esc(u.n)}</td><td>${esc(u.p)}</td><td>${esc(u.s || NONE_SUB)}</td></tr>` })
+        + list('Matrix rows with no matching Streamline unit', 'Check the spelling of the unit name in the Matrix.', (APP.matrix.unmatched || []).map(n => ({ n })),
+          { head: '<tr><th>Name in the Matrix</th></tr>', row: u => `<tr><td>${esc(u.n)}</td></tr>` })
+        + list('Active units with no subcategory', 'The Matrix row has no restriction class (YCBR units are skipped: the Matrix has none for them).', noSub,
+          { head: '<tr><th>Unit</th><th>Property</th></tr>', row: u => `<tr><td>${esc(u.n)}</td><td>${esc(u.p)}</td></tr>` });
+}
+function renderDrawer() {
+    const body = document.getElementById('drawerBody');
+    body.innerHTML = drawerTab === 'units' ? renderUnitsTab() : drawerTab === 'config' ? renderConfigTab() : renderChecksTab();
+    if (drawerTab === 'units') {
+        const q = document.getElementById('ufq');
+        q.addEventListener('input', () => { uf.q = q.value.trim().toLowerCase(); const pos = q.selectionStart; renderDrawer(); const n = document.getElementById('ufq'); n.focus(); n.setSelectionRange(pos, pos); });
+        body.querySelectorAll('select[data-uf]').forEach(s => s.addEventListener('change', () => { uf[s.dataset.uf] = s.value; renderDrawer(); }));
+        document.getElementById('unitsCsv').addEventListener('click', () => download(`units-${APP.asOf}.csv`, [['Unit','Unit ID','Property','Category','Subcategory','Tag','Dave / Jessica','Region','Status','Onboarded','In Matrix',`${APP.year} revenue`]]
+            .concat(U.filter(unitFilter).map(u => [u.n, u.id, u.p, u.c, u.s, u.t, u.tm, u.rg, u.st, u.on, u.mx ? 'yes' : 'no', Math.round(yearRev(u) * 100) / 100]))));
+    }
+    if (drawerTab === 'config') {
+        document.getElementById('prefRetired').addEventListener('change', e => { prefs.retired = e.target.checked; savePrefs(); render(); });
+        document.getElementById('prefGroup').addEventListener('change', e => { prefs.group = e.target.value; savePrefs(); render(); });
+        document.getElementById('resetFilters').addEventListener('click', () => {
+            DIMS.forEach(d => { F[d.key] = new Set(optionValues[d.key].map(([v]) => v).filter(v => !(d.key === 'prop' && v === 'Not in any property'))); });
+            F.month = new Set(MONTHS.map((_, i) => i)); buildFilters(); render();
+        });
+    }
+}
+
+buildFilters();
+render();
+</script>
+</body>
+</html>
